@@ -1,4 +1,7 @@
 package ba.grbo.wateringplants
 
-class WateringPlantsApplication {
-}
+import android.app.Application
+import dagger.hilt.android.HiltAndroidApp
+
+@HiltAndroidApp
+class WateringPlantsApplication : Application()

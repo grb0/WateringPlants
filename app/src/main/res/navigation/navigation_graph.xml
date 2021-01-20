@@ -9,7 +9,15 @@
         android:id="@+id/plantsFragment"
         android:name="ba.grbo.wateringplants.ui.fragments.PlantsFragment"
         android:label="PlantsFragment"
-        tools:layout="@layout/fragment_plants" />
+        tools:layout="@layout/fragment_plants" >
+        <action
+            android:id="@+id/action_plantsFragment_to_plantFragment"
+            app:destination="@id/plantFragment"
+            app:enterAnim="@anim/slide_in_bottom"
+            app:exitAnim="@anim/slide_out_top"
+            app:popEnterAnim="@anim/slide_in_top"
+            app:popExitAnim="@anim/slide_out_bottom" />
+    </fragment>
     <fragment
         android:id="@+id/encyclopediaFragment"
         android:name="ba.grbo.wateringplants.ui.fragments.EncyclopediaFragment"
@@ -20,4 +28,9 @@
         android:name="ba.grbo.wateringplants.ui.fragments.FavoritesFragment"
         android:label="fragment_favorites"
         tools:layout="@layout/fragment_favorites" />
+    <fragment
+        android:id="@+id/plantFragment"
+        android:name="ba.grbo.wateringplants.ui.fragments.PlantFragment"
+        android:label="fragment_plant"
+        tools:layout="@layout/fragment_plant" />
 </navigation>

@@ -1,6 +1,36 @@
 <resources>
+    <!--region WateringPlantsApplication-->
+    <!--Name-->
     <string name="app_name">Watering Plants</string>
+    <!--endregion-->
+
+    <!--region WateringPlantsActivity-->
+    <!--Bottom navigation menu and app bar title-->
     <string name="plants">Plants</string>
     <string name="encyclopedia">Encyclopedia</string>
     <string name="favorites">Favorites</string>
+    <!--endregion-->
+
+    <!--region PlantsFragment-->
+    <!--App bar menu-->
+    <string name="search">Search</string>
+    <string name="add">Add</string>
+    <string name="delete_all">Delete all</string>
+    <string name="settings">Settings</string>
+    <!--endregion-->
+
+    <!--region PlantFragment-->
+    <!--App bar title-->
+    <string name="add_plant">Add plant</string>
+
+    <!--App bar Menu-->
+    <string name="create">Create</string>
+
+    <!--Layout-->
+    <string name="plant_img_content_description">A picture of a plant</string>
+    <string name="next_watering_img_content_description">Three drops</string>
+    <string name="watering_period_img_content_description">A calendar</string>
+    <string name="take_photo_img_content_description">A photo camera</string>
+    <string name="water_button">Water</string>
+    <!--endregion-->
 </resources>
