@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Watering Plants</string>
+    <string name="plants">Plants</string>
+    <string name="encyclopedia">Encyclopedia</string>
+    <string name="favorites">Favorites</string>
 </resources>
