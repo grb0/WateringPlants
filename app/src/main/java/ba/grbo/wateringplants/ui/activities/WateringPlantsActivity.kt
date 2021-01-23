@@ -20,7 +20,7 @@ class WateringPlantsActivity : AppCompatActivity() {
     //region Properties
     private val wateringPlantsViewModel: WateringPlantsViewModel by viewModels()
     private lateinit var navController: NavController
-    lateinit var binding: ActivityWateringPlantsBinding
+    private lateinit var binding: ActivityWateringPlantsBinding
     //endregion
 
     //region Overriden methods
@@ -64,6 +64,10 @@ class WateringPlantsActivity : AppCompatActivity() {
     private fun navigateToDestination(@IdRes destinationId: Int) {
         navController.popBackStack()
         navController.navigate(destinationId)
+    }
+
+    fun setBottomNavigationVisibility(visibility: Int) {
+        binding.bottomNavigation.visibility = visibility
     }
     //endregion
 }

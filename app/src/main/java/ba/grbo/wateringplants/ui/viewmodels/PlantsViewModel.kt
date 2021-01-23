@@ -13,10 +13,6 @@ class PlantsViewModel : ViewModel() {
     val addPlantEvent: LiveData<Event<Unit>>
         get() = _addPlantEvent
 
-    private val _exitAnimationStartEvent = MutableLiveData<Event<Unit>>()
-    val exitAnimationStartEvent: LiveData<Event<Unit>>
-        get() = _exitAnimationStartEvent
-
     private val _enterAnimationStartEvent = MutableLiveData<Event<Unit>>()
     val enterAnimationStartEvent: LiveData<Event<Unit>>
         get() = _enterAnimationStartEvent
@@ -32,10 +28,6 @@ class PlantsViewModel : ViewModel() {
             R.id.add -> _addPlantEvent.value = Event(Unit)
         }
         return true
-    }
-
-    fun onExitAnimationStart() {
-        _exitAnimationStartEvent.value = Event(Unit)
     }
 
     fun onEnterAnimationStart() {

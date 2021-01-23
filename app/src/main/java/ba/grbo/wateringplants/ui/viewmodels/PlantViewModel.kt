@@ -7,9 +7,9 @@ import ba.grbo.wateringplants.util.Event
 
 class PlantViewModel : ViewModel() {
     //region Properties
-    private val _exitAnimationEndEvent = MutableLiveData<Event<Unit>>()
-    val exitAnimationEndEvent: LiveData<Event<Unit>>
-        get() = _exitAnimationEndEvent
+    private val _triggerContextualActionBar = MutableLiveData<Boolean>()
+    val triggerContextualActionBar: LiveData<Boolean>
+        get() = _triggerContextualActionBar
 
     private val _enterAnimationEndEvent = MutableLiveData<Event<Unit>>()
     val enterAnimationEndEvent: LiveData<Event<Unit>>
@@ -17,8 +17,8 @@ class PlantViewModel : ViewModel() {
     //endregion
 
     //region Helper methods
-    fun onExitAnimationEnd() {
-        _exitAnimationEndEvent.value = Event(Unit)
+    fun onEnterAnimationStart() {
+        _triggerContextualActionBar.value = true
     }
 
     fun onEnterAnimationEnd() {
