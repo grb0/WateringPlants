@@ -1,6 +1,7 @@
 package ba.grbo.wateringplants.ui.activities
 
 import android.os.Bundle
+import android.view.MotionEvent
 import androidx.activity.viewModels
 import androidx.annotation.IdRes
 import androidx.appcompat.app.AppCompatActivity
@@ -19,6 +20,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class WateringPlantsActivity : AppCompatActivity() {
     //region Properties
     private val wateringPlantsViewModel: WateringPlantsViewModel by viewModels()
+    var onTouchListener: ((event: MotionEvent) -> Unit)? = null
     private lateinit var navController: NavController
     private lateinit var binding: ActivityWateringPlantsBinding
     //endregion
@@ -45,6 +47,11 @@ class WateringPlantsActivity : AppCompatActivity() {
                 wateringPlantsViewModel.processDestinationId(destination.id)
             }
         }
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        onTouchListener?.invoke(ev)
+        return super.dispatchTouchEvent(ev)
     }
     //endregion
 

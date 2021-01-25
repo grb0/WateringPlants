@@ -32,5 +32,7 @@
     <string name="watering_period_img_content_description">A calendar</string>
     <string name="take_photo_img_content_description">A photo camera</string>
     <string name="water_button">Water</string>
+    <string name="plant_name">Enter plant name</string>
+    <string name="plant_description">Enter plant description</string>
     <!--endregion-->
 </resources>

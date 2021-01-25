@@ -42,19 +42,17 @@
             android:background="@color/missing_image"
             android:contentDescription="@string/plant_img_content_description"
             android:scaleType="fitXY"
-            app:layout_constraintBottom_toBottomOf="@id/horizontal_guideline"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/vertical_guideline"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.0" />
+            app:layout_constraintTop_toTopOf="parent" />
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/horizontal_guideline"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.50" />
+            app:layout_constraintGuide_percent="0.75" />
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/plant_info_material_card_view"
@@ -65,8 +63,8 @@
             android:layout_marginEnd="16dp"
             app:cardElevation="0dp"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/plant_img"
+            app:layout_constraintStart_toStartOf="@+id/vertical_guideline"
+            app:layout_constraintTop_toTopOf="parent"
             app:strokeColor="@color/stroke_color"
             app:strokeWidth="1.5dp">
 
@@ -86,7 +84,8 @@
                     app:hintEnabled="false"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent">
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:visibility="visible">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/plant_name_text_input_edit_text"
@@ -119,7 +118,8 @@
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="@+id/plant_name_text_input_layout"
-                    app:layout_constraintTop_toBottomOf="@+id/plant_name_text_input_layout">
+                    app:layout_constraintTop_toBottomOf="@+id/plant_name_text_input_layout"
+                    tools:visibility="visible">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/plant_description_text_input_edit_text"
@@ -153,7 +153,8 @@
                     android:onClick="@{_ -> onClickWateringPeriodImg.invoke()}"
                     android:src="@drawable/ic_calendar"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:visibility="visible" />
 
                 <ba.grbo.wateringplants.util.CustomTextInputLayout
                     android:id="@+id/watering_period_text_input_layout"
@@ -194,24 +195,33 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:fontFamily="@font/roboto"
-                    android:text="@{wateringPeriod.text}"
+                    android:text="@={wateringPeriod.text}"
                     android:textSize="18sp"
                     app:layout_constraintBottom_toBottomOf="@+id/watering_period_img"
                     app:layout_constraintEnd_toEndOf="@+id/watering_period_img"
                     app:layout_constraintStart_toStartOf="@+id/watering_period_img"
                     app:layout_constraintTop_toTopOf="@+id/watering_period_img"
                     app:visualness="@={wateringPeriod.visibility}"
-                    tools:text="2" />
+                    tools:text="2"
+                    tools:visibility="visible" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 
         </com.google.android.material.card.MaterialCardView>
+
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/vertical_guideline"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.60" />
+            app:layout_constraintGuide_percent="0.45" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.78" />
 
         <Button
             android:id="@+id/water_button"
@@ -225,20 +235,21 @@
             app:iconGravity="textStart"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="@+id/plant_info_material_card_view"
-            app:layout_constraintStart_toStartOf="@+id/vertical_guideline"
+            app:layout_constraintStart_toStartOf="@+id/guideline"
             app:layout_constraintTop_toBottomOf="@+id/plant_info_material_card_view"
-            app:layout_constraintVertical_bias="1.0" />
+            tools:visibility="visible" />
 
         <ImageView
             android:id="@+id/take_photo_img"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="26dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginTop="26dp"
+            android:layout_marginEnd="16dp"
             android:contentDescription="@string/take_photo_img_content_description"
             android:src="@drawable/ic_add_photo"
-            app:layout_constraintBottom_toTopOf="@+id/horizontal_guideline"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toStartOf="@+id/vertical_guideline"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:visibility="visible" />
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/next_watering_info_material_card_view"
@@ -249,7 +260,7 @@
             android:layout_marginBottom="6dp"
             app:cardElevation="0dp"
             app:layout_constraintBottom_toBottomOf="@+id/water_button"
-            app:layout_constraintEnd_toStartOf="@+id/vertical_guideline"
+            app:layout_constraintEnd_toStartOf="@+id/guideline"
             app:layout_constraintStart_toStartOf="@+id/plant_info_material_card_view"
             app:layout_constraintTop_toTopOf="@+id/water_button"
             app:strokeColor="@color/stroke_color"
@@ -259,13 +270,14 @@
                 android:id="@+id/next_watering_text"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_margin="24dp"
+                android:layout_margin="12dp"
                 android:fontFamily="@font/roboto"
                 android:gravity="center"
                 android:text="1d:15h:23m:15s"
                 android:textSize="20sp"
                 app:drawableTopCompat="@drawable/ic_watering_time"
-                tools:text="1d:15h:23m:15s" />
+                tools:text="1d:15h:23m:15s"
+                tools:visibility="visible" />
         </com.google.android.material.card.MaterialCardView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

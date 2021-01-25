@@ -19,6 +19,10 @@
         <item name="actionModeStyle">@style/Widget.App.ActionMode</item>
         <item name="actionModeCloseDrawable">@drawable/ic_close</item>
         <item name="actionBarTheme">@style/ThemeOverlay.MaterialComponents.Dark.ActionBar</item>
+
+        <item name="android:windowBackground">@color/light_gray</item>
+
+        <item name="colorAccent">?attr/colorPrimaryVariant</item>
     </style>
 
     <!--Splash screen theme-->
