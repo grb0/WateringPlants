@@ -33,4 +33,9 @@
         android:name="ba.grbo.wateringplants.ui.fragments.PlantFragment"
         android:label="fragment_plant"
         tools:layout="@layout/fragment_plant" />
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="ba.grbo.wateringplants.ui.fragments.SettingsFragment"
+        android:label="fragment_settings"
+        tools:layout="@layout/fragment_settings" />
 </navigation>

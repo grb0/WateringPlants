@@ -17,7 +17,7 @@ import ba.grbo.wateringplants.util.onCreateAnimation
 
 class PlantsFragment : Fragment() {
     //region Properties
-    private val plantsViewModel: PlantsViewModel by viewModels()
+    private val viewModel: PlantsViewModel by viewModels()
     private lateinit var activity: WateringPlantsActivity
     //endregion
 
@@ -28,7 +28,7 @@ class PlantsFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         setHasOptionsMenu(true)
-        plantsViewModel.observeEvents()
+        viewModel.observeEvents()
         val binding = FragmentPlantsBinding.inflate(inflater, container, false)
 
         return binding.root
@@ -44,7 +44,7 @@ class PlantsFragment : Fragment() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return plantsViewModel.processActionBarItemId(item.itemId)
+        return viewModel.processActionBarItemId(item.itemId)
     }
 
     override fun onCreateAnimation(transit: Int, enter: Boolean, nextAnim: Int): Animation? {
@@ -53,8 +53,8 @@ class PlantsFragment : Fragment() {
             enter,
             nextAnim,
             requireContext(),
-            plantsViewModel::onEnterAnimationStart,
-            plantsViewModel::onEnterAnimationEnd,
+            viewModel::onEnterAnimationStart,
+            viewModel::onEnterAnimationEnd,
         ) { t, e, a -> super.onCreateAnimation(t, e, a) }
     }
     //endregion

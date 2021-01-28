@@ -2,12 +2,10 @@ package ba.grbo.wateringplants.ui.fragments
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import android.view.*
 import android.view.animation.Animation
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.view.ActionMode
-import androidx.core.view.children
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -22,9 +20,9 @@ import kotlinx.coroutines.launch
 
 class PlantFragment : Fragment() {
     //region Properties
-    private val plantViewModel: PlantViewModel by viewModels()
+    private val viewModel: PlantViewModel by viewModels()
     private lateinit var activity: WateringPlantsActivity
-    private lateinit var inputMethodManager: InputMethodManager
+    private lateinit var imm: InputMethodManager
     private lateinit var binding: FragmentPlantBinding
     //endregion
 
@@ -34,11 +32,11 @@ class PlantFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        plantViewModel.observeEvents()
+        viewModel.observeEvents()
         binding = FragmentPlantBinding.inflate(inflater, container, false).apply {
             lifecycleOwner = viewLifecycleOwner
 //            setOnTouchListener = plantViewModel::setOnTouchListener
-            wateringPeriod = plantViewModel.wateringPeriod
+            wateringPeriod = viewModel.wateringPeriod
 
             onTouchListener = OnTouchListener(
                 ::showKeyboard,
@@ -47,12 +45,12 @@ class PlantFragment : Fragment() {
                 ::onReleaseFocus
             )
 
-            onClickWateringPeriodImg = plantViewModel::onClickWateringPeriodImg
+            onClickWateringPeriodImg = viewModel::onClickWateringPeriodImg
             onReleaseFocusWateringPeriodTextInputLayout =
-                plantViewModel::onReleaseFocusWateringPeriodTextInputLayout
+                viewModel::onReleaseFocusWateringPeriodTextInputLayout
 
             plantFragmentConstraintLayout.setOnFocusChangeListener { _, hasFocus ->
-                plantViewModel.plantFragmentConstraintLayoutOnFocusChange(hasFocus)
+                viewModel.plantFragmentConstraintLayoutOnFocusChange(hasFocus)
             }
         }
 
@@ -62,8 +60,7 @@ class PlantFragment : Fragment() {
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
         activity = requireActivity() as WateringPlantsActivity
-        inputMethodManager =
-            activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm = activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
     }
 
     override fun onCreateAnimation(transit: Int, enter: Boolean, nextAnim: Int): Animation? {
@@ -72,8 +69,8 @@ class PlantFragment : Fragment() {
             enter,
             nextAnim,
             requireContext(),
-            plantViewModel::onEnterAnimationStart,
-            plantViewModel::onEnterAnimationEnd
+            viewModel::onEnterAnimationStart,
+            viewModel::onEnterAnimationEnd
         ) { t, e, a -> super.onCreateAnimation(t, e, a) }
     }
     //endregion
@@ -91,13 +88,13 @@ class PlantFragment : Fragment() {
 
     //region Helper methods
     private fun hideKeyboard(view: View) {
-        inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
+        imm.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
     private fun showKeyboard(view: View) {
         lifecycleScope.launch {
             delay(100)
-            if (isActive) inputMethodManager.showSoftInput(view, InputMethodManager.SHOW_FORCED)
+            if (isActive) imm.showSoftInput(view, InputMethodManager.SHOW_FORCED)
         }
     }
 

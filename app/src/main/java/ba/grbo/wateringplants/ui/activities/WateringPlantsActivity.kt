@@ -19,7 +19,7 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class WateringPlantsActivity : AppCompatActivity() {
     //region Properties
-    private val wateringPlantsViewModel: WateringPlantsViewModel by viewModels()
+    private val viewModel: WateringPlantsViewModel by viewModels()
     var onTouchListener: ((event: MotionEvent) -> Unit)? = null
     private lateinit var navController: NavController
     private lateinit var binding: ActivityWateringPlantsBinding
@@ -28,7 +28,7 @@ class WateringPlantsActivity : AppCompatActivity() {
     //region Overriden methods
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.Theme_WateringPlants)
-        wateringPlantsViewModel.observeEvents()
+        viewModel.observeEvents()
         super.onCreate(savedInstanceState)
 
         binding = DataBindingUtil.setContentView<ActivityWateringPlantsBinding>(
@@ -36,15 +36,15 @@ class WateringPlantsActivity : AppCompatActivity() {
             R.layout.activity_watering_plants
         ).apply {
             lifecycleOwner = this@WateringPlantsActivity
-            processItemId = wateringPlantsViewModel::processItemId
-            actionBarTitleId = wateringPlantsViewModel.actionBarTitleId
+            processItemId = viewModel::processItemId
+            actionBarTitleId = viewModel.actionBarTitleId
             setSupportActionBar(materialToolbar)
         }
 
         val fragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
         navController = (fragment as NavHostFragment).navController.apply {
             addOnDestinationChangedListener { _, destination, _ ->
-                wateringPlantsViewModel.processDestinationId(destination.id)
+                viewModel.processDestinationId(destination.id)
             }
         }
     }
@@ -57,12 +57,10 @@ class WateringPlantsActivity : AppCompatActivity() {
 
     //region LiveData observers
     private fun WateringPlantsViewModel.observeEvents() {
-        observeToFragmentEvent(toPlantsFragmentEvent)
-        observeToFragmentEvent(toEncyclopediaFragmentEvent)
-        observeToFragmentEvent(toFavoritesFragmentEvent)
+        observeToAnotherFragmentEvent(toAnotherFragmentEvent)
     }
 
-    private fun observeToFragmentEvent(toFragmentEvent: LiveData<Event<Int>>) {
+    private fun observeToAnotherFragmentEvent(toFragmentEvent: LiveData<Event<Int>>) {
         observeEvent(toFragmentEvent, this, ::navigateToDestination)
     }
     //endregion

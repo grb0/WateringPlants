@@ -1,6 +1,5 @@
 package ba.grbo.wateringplants.util
 
-import android.util.Log
 import android.view.View
 import androidx.databinding.BindingAdapter
 import androidx.databinding.InverseBindingAdapter
@@ -45,17 +44,12 @@ fun TextInputEditText.bindOnSetTouchListener(
         } else onTouchListener.run {
             hideKeyBoard(this@bindOnSetTouchListener)
             setOnTouchListener(null)
-            onIdMatch(id, this@bindOnSetTouchListener)
+            if (id == R.id.plant_description_text_input_edit_text) {
+                val text = text.toString()
+                if (text.isNotEmpty()) setText(removeExcessiveSpace(text))
+            }
         }
     }
-}
-
-private fun onIdMatch(
-    id: Int,
-    view: TextInputEditText
-) {
-    if (id == R.id.plant_description_text_input_edit_text && view.text.toString().isNotEmpty())
-        view.setText(removeExcessiveSpace(view.text.toString()))
 }
 
 @BindingAdapter("visualness")
