@@ -36,7 +36,7 @@ class WateringPlantsActivity : AppCompatActivity() {
             R.layout.activity_watering_plants
         ).apply {
             lifecycleOwner = this@WateringPlantsActivity
-            processItemId = viewModel::processItemId
+            processBottomNavigationItemId = viewModel::processBotomNavigationItemId
             actionBarTitleId = viewModel.actionBarTitleId
             setSupportActionBar(materialToolbar)
         }
@@ -57,10 +57,10 @@ class WateringPlantsActivity : AppCompatActivity() {
 
     //region LiveData observers
     private fun WateringPlantsViewModel.observeEvents() {
-        observeToAnotherFragmentEvent(toAnotherFragmentEvent)
+        observeToFragmentEvent(toFragmentEvent)
     }
 
-    private fun observeToAnotherFragmentEvent(toFragmentEvent: LiveData<Event<Int>>) {
+    private fun observeToFragmentEvent(toFragmentEvent: LiveData<Event<Int>>) {
         observeEvent(toFragmentEvent, this, ::navigateToDestination)
     }
     //endregion

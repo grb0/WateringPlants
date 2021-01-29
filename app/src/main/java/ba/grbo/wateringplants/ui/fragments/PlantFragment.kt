@@ -45,9 +45,8 @@ class PlantFragment : Fragment() {
                 ::onReleaseFocus
             )
 
-            onClickWateringPeriodImg = viewModel::onClickWateringPeriodImg
-            onReleaseFocusWateringPeriodTextInputLayout =
-                viewModel::onReleaseFocusWateringPeriodTextInputLayout
+            onCalendarImgClick = viewModel::onCalendarImgClick
+            onEditTextReleaseFocus = viewModel::onEditTextReleaseFocus
 
             plantFragmentConstraintLayout.setOnFocusChangeListener { _, hasFocus ->
                 viewModel.plantFragmentConstraintLayoutOnFocusChange(hasFocus)
@@ -101,34 +100,6 @@ class PlantFragment : Fragment() {
     private fun setOnTouchListener(onTouchListener: ((MotionEvent) -> Unit)?) {
         activity.onTouchListener = onTouchListener
     }
-
-    private fun releaseOnTouchListener() {
-        activity.onTouchListener = null
-    }
-
-//    private fun onReleaseFocus(
-//        view: View,
-//        event: MotionEvent,
-//        action: () -> Unit
-//    ) {
-//        val touchPoint = Point(event.rawX.roundToInt(), event.rawY.roundToInt())
-//        val viewTouched = isPointInsideViewBounds(view, touchPoint)
-//        if (!viewTouched) action()
-//    }
-//
-//    private fun isPointInsideViewBounds(view: View, point: Point): Boolean = Rect().run {
-//        // get view rectangle
-//        view.getDrawingRect(this)
-//
-//        // apply offset
-//        IntArray(2).also { locationOnScreen ->
-//            view.getLocationOnScreen(locationOnScreen)
-//            offset(locationOnScreen[0], locationOnScreen[1])
-//        }
-//
-//        // check is rectangle contains point
-//        contains(point.x, point.y)
-//    }
 
     private fun WateringPlantsActivity.triggerContextualActionBar() {
         setContextualActionBar()

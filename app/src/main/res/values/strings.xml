@@ -27,7 +27,7 @@
     <string name="create">Create</string>
 
     <!--Layout-->
-    <string name="plant_img_content_description">A picture of a plant</string>
+    <string name="plant_img_content_description">A plant</string>
     <string name="next_watering_img_content_description">Three drops</string>
     <string name="watering_period_img_content_description">A calendar</string>
     <string name="take_photo_img_content_description">A photo camera</string>

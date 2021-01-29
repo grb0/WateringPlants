@@ -15,11 +15,8 @@ class PlantViewModel : ViewModel() {
     val enterAnimationEndEvent: LiveData<Event<Unit>>
         get() = _enterAnimationEndEvent
 
-    private val _setOnTouchListener = MutableLiveData<Boolean>()
-    val setOnTouchListener: LiveData<Boolean>
-        get() = _setOnTouchListener
-
-    val wateringPeriod = WateringPeriod(MutableLiveData("1"), MutableLiveData(true))
+    // first value represents text, second one visibility
+    val wateringPeriod = MutableLiveData("1") to MutableLiveData(true)
     //endregion
 
     //region Helper methods
@@ -31,26 +28,17 @@ class PlantViewModel : ViewModel() {
         _enterAnimationEndEvent.value = Event(Unit)
     }
 
-    fun setOnTouchListener(value: Boolean) {
-        _setOnTouchListener.value = value
+    fun onCalendarImgClick() {
+        wateringPeriod.second.value = false
     }
 
-    fun onClickWateringPeriodImg() {
-        wateringPeriod.visibility.value = false
-    }
-
-    fun onReleaseFocusWateringPeriodTextInputLayout() {
-        wateringPeriod.visibility.value = true
+    fun onEditTextReleaseFocus() {
+        wateringPeriod.second.value = true
     }
 
     fun plantFragmentConstraintLayoutOnFocusChange(hasFocus: Boolean) {
-        if (hasFocus && wateringPeriod.visibility.value == false)
-            wateringPeriod.visibility.value = true
+        if (hasFocus && wateringPeriod.second.value == false)
+            wateringPeriod.second.value = true
     }
     //endregion
 }
-
-data class WateringPeriod(
-    val text: MutableLiveData<String>,
-    val visibility: MutableLiveData<Boolean>
-)

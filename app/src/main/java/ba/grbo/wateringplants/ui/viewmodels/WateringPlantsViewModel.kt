@@ -9,9 +9,9 @@ import ba.grbo.wateringplants.util.Event
 
 class WateringPlantsViewModel : ViewModel() {
     //region Properties
-    private val _toAnotherFragmentEvent = MutableLiveData<Event<@IdRes Int>>()
-    val toAnotherFragmentEvent: LiveData<Event<Int>>
-        get() = _toAnotherFragmentEvent
+    private val _toFragmentEvent = MutableLiveData<Event<@IdRes Int>>()
+    val toFragmentEvent: LiveData<Event<Int>>
+        get() = _toFragmentEvent
 
     private val _actionBarTitleId = MutableLiveData<@IdRes Int>()
     val actionBarTitleId: LiveData<Int>
@@ -19,8 +19,8 @@ class WateringPlantsViewModel : ViewModel() {
     //endregion
 
     //region Helper methods
-    fun processItemId(@IdRes itemId: Int) {
-        _toAnotherFragmentEvent.value = when (itemId) {
+    fun processBotomNavigationItemId(@IdRes itemId: Int) {
+        _toFragmentEvent.value = when (itemId) {
             R.id.plants -> Event(R.id.plantsFragment)
             R.id.encyclopedia -> Event(R.id.encyclopediaFragment)
             R.id.favorites -> Event(R.id.favoritesFragment)

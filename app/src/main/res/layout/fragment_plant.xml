@@ -11,20 +11,22 @@
 
         <import type="kotlin.Unit" />
 
+        <import type="kotlin.Pair" />
+
         <variable
             name="onTouchListener"
             type="ba.grbo.wateringplants.util.OnTouchListener" />
 
         <variable
-            name="wateringPeriod"
-            type="ba.grbo.wateringplants.ui.viewmodels.WateringPeriod" />
-
-        <variable
-            name="onClickWateringPeriodImg"
+            name="onEditTextReleaseFocus"
             type="Function0&lt;Unit&gt;" />
 
         <variable
-            name="onReleaseFocusWateringPeriodTextInputLayout"
+            name="wateringPeriod"
+            type="Pair&lt;MutableLiveData&lt;String&gt;, MutableLiveData&lt;Boolean&gt;&gt;" />
+
+        <variable
+            name="onCalendarImgClick"
             type="Function0&lt;Unit&gt;" />
     </data>
 
@@ -42,7 +44,7 @@
             android:background="@color/missing_image"
             android:contentDescription="@string/plant_img_content_description"
             android:scaleType="fitXY"
-            app:layout_constraintBottom_toBottomOf="@id/horizontal_guideline"
+            app:layout_constraintBottom_toBottomOf="@id/h_guideline"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
@@ -50,14 +52,14 @@
             app:layout_constraintVertical_bias="0.0" />
 
         <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/horizontal_guideline"
+            android:id="@+id/h_guideline"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             app:layout_constraintGuide_percent="0.50" />
 
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/plant_info_material_card_view"
+            android:id="@+id/plant_info_card"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
@@ -71,12 +73,12 @@
             app:strokeWidth="1.5dp">
 
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/plant_info_constraint_layout"
+                android:id="@+id/plant_info_layout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
                 <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/plant_name_text_input_layout"
+                    android:id="@+id/plant_name_layout"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -89,7 +91,7 @@
                     app:layout_constraintTop_toTopOf="parent">
 
                     <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/plant_name_text_input_edit_text"
+                        android:id="@+id/plant_name_edit_text"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:background="@drawable/plant_name_background"
@@ -104,12 +106,12 @@
                         android:paddingBottom="6dp"
                         android:selectAllOnFocus="true"
                         android:textSize="28sp"
-                        app:setOnReleaseFocusWateringPeriodTextInputLayout="@{onReleaseFocusWateringPeriodTextInputLayout}"
-                        app:setOnTouchListener="@{onTouchListener}" />
+                        app:onReleaseFocus="@{onEditTextReleaseFocus}"
+                        app:onTouchListener="@{onTouchListener}" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/plant_description_text_input_layout"
+                    android:id="@+id/plant_description_layout"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -118,11 +120,11 @@
                     app:hintEnabled="false"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="@+id/plant_name_text_input_layout"
-                    app:layout_constraintTop_toBottomOf="@+id/plant_name_text_input_layout">
+                    app:layout_constraintStart_toStartOf="@+id/plant_name_layout"
+                    app:layout_constraintTop_toBottomOf="@+id/plant_name_layout">
 
                     <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/plant_description_text_input_edit_text"
+                        android:id="@+id/plant_description_edit_text"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:background="@drawable/plant_name_background"
@@ -138,40 +140,40 @@
                         android:paddingBottom="6dp"
                         android:selectAllOnFocus="true"
                         android:textSize="18sp"
-                        app:setOnReleaseFocusWateringPeriodTextInputLayout="@{onReleaseFocusWateringPeriodTextInputLayout}"
-                        app:setOnTouchListener="@{onTouchListener}" />
+                        app:onReleaseFocus="@{onEditTextReleaseFocus}"
+                        app:onTouchListener="@{onTouchListener}" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <ImageView
-                    android:id="@+id/watering_period_img"
-                    visualness="@={wateringPeriod.visibility}"
+                    android:id="@+id/calendar_img"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:layout_marginEnd="8dp"
                     android:contentDescription="@string/watering_period_img_content_description"
-                    android:onClick="@{_ -> onClickWateringPeriodImg.invoke()}"
+                    android:onClick="@{_ -> onCalendarImgClick.invoke()}"
                     android:src="@drawable/ic_calendar"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:visibility="@={wateringPeriod.second}" />
 
                 <ba.grbo.wateringplants.util.CustomTextInputLayout
-                    android:id="@+id/watering_period_text_input_layout"
+                    android:id="@+id/watering_period_layout"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    visualness="@={!wateringPeriod.visibility}"
                     android:layout_width="wrap_content"
                     android:layout_height="0dp"
                     android:layout_marginStart="22dp"
                     android:layout_marginEnd="22dp"
                     app:hintEnabled="false"
-                    app:layout_constraintBottom_toBottomOf="@+id/plant_name_text_input_layout"
+                    app:layout_constraintBottom_toBottomOf="@+id/plant_name_layout"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@+id/plant_name_text_input_layout"
-                    app:layout_constraintTop_toTopOf="@+id/plant_name_text_input_layout"
+                    app:layout_constraintStart_toEndOf="@+id/plant_name_layout"
+                    app:layout_constraintTop_toTopOf="@+id/plant_name_layout"
+                    app:visibility="@={!wateringPeriod.second}"
                     tools:visibility="visible">
 
                     <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/watering_period_text_input_edit_text"
+                        android:id="@+id/watering_period_edit_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:background="@drawable/plant_name_background"
@@ -181,33 +183,33 @@
                         android:maxLines="1"
                         android:paddingBottom="8dp"
                         android:selectAllOnFocus="true"
-                        android:text="@={wateringPeriod.text}"
+                        android:text="@={wateringPeriod.first}"
                         android:textSize="18sp"
-                        app:setOnReleaseFocusWateringPeriodTextInputLayout="@{onReleaseFocusWateringPeriodTextInputLayout}"
-                        app:setOnTouchListener="@{onTouchListener}"
+                        app:onReleaseFocus="@{onEditTextReleaseFocus}"
+                        app:onTouchListener="@{onTouchListener}"
                         tools:text="2" />
                 </ba.grbo.wateringplants.util.CustomTextInputLayout>
 
                 <ba.grbo.wateringplants.util.CustomTextView
-                    android:id="@+id/watering_period_text"
+                    android:id="@+id/calendar_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:fontFamily="@font/roboto"
-                    android:text="@{wateringPeriod.text}"
+                    android:text="@{wateringPeriod.first}"
                     android:textSize="18sp"
-                    app:layout_constraintBottom_toBottomOf="@+id/watering_period_img"
-                    app:layout_constraintEnd_toEndOf="@+id/watering_period_img"
-                    app:layout_constraintStart_toStartOf="@+id/watering_period_img"
-                    app:layout_constraintTop_toTopOf="@+id/watering_period_img"
-                    app:visualness="@={wateringPeriod.visibility}"
+                    app:layout_constraintBottom_toBottomOf="@+id/calendar_img"
+                    app:layout_constraintEnd_toEndOf="@+id/calendar_img"
+                    app:layout_constraintStart_toStartOf="@+id/calendar_img"
+                    app:layout_constraintTop_toTopOf="@+id/calendar_img"
+                    app:visibility="@={wateringPeriod.second}"
                     tools:text="2" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 
         </com.google.android.material.card.MaterialCardView>
 
         <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/vertical_guideline"
+            android:id="@+id/v_guideline_1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -224,24 +226,24 @@
             app:icon="@drawable/ic_drop"
             app:iconGravity="textStart"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="@+id/plant_info_material_card_view"
-            app:layout_constraintStart_toStartOf="@+id/vertical_guideline"
-            app:layout_constraintTop_toBottomOf="@+id/plant_info_material_card_view"
+            app:layout_constraintEnd_toEndOf="@+id/plant_info_card"
+            app:layout_constraintStart_toStartOf="@+id/v_guideline_1"
+            app:layout_constraintTop_toBottomOf="@+id/plant_info_card"
             app:layout_constraintVertical_bias="1.0" />
 
         <ImageView
-            android:id="@+id/take_photo_img"
+            android:id="@+id/photo_camera_img"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="26dp"
             android:layout_marginBottom="16dp"
             android:contentDescription="@string/take_photo_img_content_description"
             android:src="@drawable/ic_add_photo"
-            app:layout_constraintBottom_toTopOf="@+id/horizontal_guideline"
+            app:layout_constraintBottom_toTopOf="@+id/h_guideline"
             app:layout_constraintEnd_toEndOf="parent" />
 
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/next_watering_info_material_card_view"
+            android:id="@+id/next_watering_card"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:layout_marginTop="6dp"
@@ -249,8 +251,8 @@
             android:layout_marginBottom="6dp"
             app:cardElevation="0dp"
             app:layout_constraintBottom_toBottomOf="@+id/water_button"
-            app:layout_constraintEnd_toStartOf="@+id/vertical_guideline"
-            app:layout_constraintStart_toStartOf="@+id/plant_info_material_card_view"
+            app:layout_constraintEnd_toStartOf="@+id/v_guideline_1"
+            app:layout_constraintStart_toStartOf="@+id/plant_info_card"
             app:layout_constraintTop_toTopOf="@+id/water_button"
             app:strokeColor="@color/stroke_color"
             app:strokeWidth="1.5dp">

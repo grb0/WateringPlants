@@ -9,9 +9,9 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.textfield.TextInputEditText
 
 @BindingAdapter("setOnItemSelectedListener")
-fun BottomNavigationView.bindSetOnItemSelectedListener(processItemId: (Int) -> Unit) {
+fun BottomNavigationView.bindSetOnItemSelectedListener(processBotomNavigationItemId: (Int) -> Unit) {
     setOnNavigationItemSelectedListener {
-        processItemId(it.itemId)
+        processBotomNavigationItemId(it.itemId)
         true
     }
 
@@ -20,31 +20,31 @@ fun BottomNavigationView.bindSetOnItemSelectedListener(processItemId: (Int) -> U
 }
 
 @BindingAdapter(
-    "setOnTouchListener",
-    "setOnReleaseFocusWateringPeriodTextInputLayout",
+    "onTouchListener",
+    "onReleaseFocus",
     requireAll = false
 )
-fun TextInputEditText.bindOnSetTouchListener(
+fun TextInputEditText.bindOnTouchListener(
     onTouchListener: OnTouchListener,
-    onReleaseFocusWateringPeriodTextInputLayout: (() -> Unit)?
+    onReleaseFocus: (() -> Unit)?
 ) {
     setOnFocusChangeListener { _, hasFocus ->
         if (hasFocus) onTouchListener.run {
-            showKeyboard(this@bindOnSetTouchListener)
+            showKeyboard(this@bindOnTouchListener)
             setOnTouchListener {
                 onReleaseFocus(
-                    this@bindOnSetTouchListener,
+                    this@bindOnTouchListener,
                     it,
-                    this@bindOnSetTouchListener::clearFocus
+                    this@bindOnTouchListener::clearFocus
                 )
             }
-            if (id != R.id.watering_period_text_input_edit_text) {
-                onReleaseFocusWateringPeriodTextInputLayout?.invoke()
+            if (id != R.id.watering_period_edit_text) {
+                onReleaseFocus?.invoke()
             }
         } else onTouchListener.run {
-            hideKeyBoard(this@bindOnSetTouchListener)
+            hideKeyBoard(this@bindOnTouchListener)
             setOnTouchListener(null)
-            if (id == R.id.plant_description_text_input_edit_text) {
+            if (id == R.id.plant_description_edit_text) {
                 val text = text.toString()
                 if (text.isNotEmpty()) setText(removeExcessiveSpace(text))
             }
@@ -52,22 +52,22 @@ fun TextInputEditText.bindOnSetTouchListener(
     }
 }
 
-@BindingAdapter("visualness")
-fun View.bindVisualness(visualness: Boolean?) {
-    visualness?.run {
-        if ((visualness && visibility != View.VISIBLE) ||
-            (!visualness && visibility != View.GONE)
+@BindingAdapter("visibility")
+fun View.bindVisibility(visibility: Boolean?) {
+    visibility?.run {
+        if ((visibility && this@bindVisibility.visibility != View.VISIBLE) ||
+            (!visibility && this@bindVisibility.visibility != View.GONE)
         ) {
-            visibility = if (visualness) View.VISIBLE else View.GONE
+            this@bindVisibility.visibility = if (visibility) View.VISIBLE else View.GONE
         }
     }
 }
 
-@InverseBindingAdapter(attribute = "visualness")
-fun View.getVisualness(): Boolean = visibility == View.VISIBLE
+@InverseBindingAdapter(attribute = "visibility")
+fun View.provideVisibility(): Boolean = visibility == View.VISIBLE
 
-@BindingAdapter("visualnessAttrChanged")
-fun View.triggerVisualness(attrChange: InverseBindingListener) {
+@BindingAdapter("visibilityAttrChanged")
+fun View.triggerVisibiltiy(attrChange: InverseBindingListener) {
     when (this) {
         is CustomTextView -> setOnVisibilityChangedListener { attrChange.onChange() }
         is CustomTextInputLayout -> setOnVisibilityChangedListener {
