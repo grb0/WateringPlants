@@ -26,6 +26,12 @@
     <!--App bar Menu-->
     <string name="create">Create</string>
 
+    <!--Popup menu-->
+    <string name="pick_image">Pick an image</string>
+    <string name="take_photo">Take a photo</string>
+    <string name="rotate_image_right">Rotate right</string>
+    <string name="rotate_image_left">Rotate left</string>
+
     <!--Layout-->
     <string name="plant_img_content_description">A plant</string>
     <string name="next_watering_img_content_description">Three drops</string>
@@ -34,5 +40,7 @@
     <string name="water_button">Water</string>
     <string name="plant_name">Enter plant name</string>
     <string name="plant_description">Enter plant description</string>
+    <string name="pick_photo_img_content_description">A landscape</string>
+    <string name="hourglass">An hourglass</string>
     <!--endregion-->
 </resources>

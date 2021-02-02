@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
+<layout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
 
@@ -7,29 +8,10 @@
 
         <import type="android.view.View" />
 
-        <import type="kotlin.jvm.functions.Function0" />
-
-        <import type="kotlin.Unit" />
-
-        <import type="kotlin.Pair" />
-
-        <import type="androidx.lifecycle.MutableLiveData" />
-
         <variable
-            name="onTouchListener"
-            type="ba.grbo.wateringplants.util.OnTouchListener" />
+            name="viewModel"
+            type="ba.grbo.wateringplants.ui.viewmodels.PlantViewModel" />
 
-        <variable
-            name="onEditTextReleaseFocus"
-            type="Function0&lt;Unit&gt;" />
-
-        <variable
-            name="wateringPeriod"
-            type="Pair&lt;MutableLiveData&lt;String&gt;, MutableLiveData&lt;Boolean&gt;&gt;" />
-
-        <variable
-            name="onCalendarImgClick"
-            type="Function0&lt;Unit&gt;" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -106,9 +88,7 @@
                         android:paddingEnd="9dp"
                         android:paddingBottom="6dp"
                         android:selectAllOnFocus="true"
-                        android:textSize="28sp"
-                        app:onReleaseFocus="@{onEditTextReleaseFocus}"
-                        app:onTouchListener="@{onTouchListener}" />
+                        android:textSize="28sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -141,9 +121,7 @@
                         android:paddingEnd="9dp"
                         android:paddingBottom="6dp"
                         android:selectAllOnFocus="true"
-                        android:textSize="18sp"
-                        app:onReleaseFocus="@{onEditTextReleaseFocus}"
-                        app:onTouchListener="@{onTouchListener}" />
+                        android:textSize="18sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <ImageView
@@ -153,11 +131,11 @@
                     android:layout_marginTop="8dp"
                     android:layout_marginEnd="8dp"
                     android:contentDescription="@string/watering_period_img_content_description"
-                    android:onClick="@{_ -> onCalendarImgClick.invoke()}"
+                    android:onClick="@{_ -> viewModel.onCalendarImgClick()}"
                     android:src="@drawable/ic_calendar"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:visibility="@={wateringPeriod.second}"
+                    app:visibility="@={viewModel.wateringPeriod.second}"
                     tools:visibility="visible" />
 
                 <ba.grbo.wateringplants.util.CustomTextInputLayout
@@ -172,7 +150,7 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toEndOf="@+id/plant_name_layout"
                     app:layout_constraintTop_toTopOf="@+id/plant_name_layout"
-                    app:visibility="@={!wateringPeriod.second}"
+                    app:visibility="@={!viewModel.wateringPeriod.second}"
                     tools:visibility="visible">
 
                     <com.google.android.material.textfield.TextInputEditText
@@ -186,10 +164,9 @@
                         android:maxLines="1"
                         android:paddingBottom="8dp"
                         android:selectAllOnFocus="true"
-                        android:text="@={wateringPeriod.first}"
+                        android:text="@={viewModel.wateringPeriod.first}"
                         android:textSize="18sp"
-                        app:onReleaseFocus="@{onEditTextReleaseFocus}"
-                        app:onTouchListener="@{onTouchListener}"
+
                         tools:text="2" />
                 </ba.grbo.wateringplants.util.CustomTextInputLayout>
 
@@ -199,13 +176,13 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:fontFamily="@font/roboto"
-                    android:text="@={wateringPeriod.first}"
+                    android:text="@={viewModel.wateringPeriod.first}"
                     android:textSize="18sp"
                     app:layout_constraintBottom_toBottomOf="@+id/calendar_img"
                     app:layout_constraintEnd_toEndOf="@+id/calendar_img"
                     app:layout_constraintStart_toStartOf="@+id/calendar_img"
                     app:layout_constraintTop_toTopOf="@+id/calendar_img"
-                    app:visibility="@={wateringPeriod.second}"
+                    app:visibility="@={viewModel.wateringPeriod.second}"
                     tools:text="2"
                     tools:visibility="visible" />
             </androidx.constraintlayout.widget.ConstraintLayout>
@@ -243,16 +220,40 @@
             tools:visibility="visible" />
 
         <ImageView
-            android:id="@+id/photo_camera_img"
+            android:id="@+id/take_photo_img"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="26dp"
-            android:layout_marginEnd="16dp"
+            android:layout_marginStart="16dp"
+            android:background="@drawable/img_ripple"
             android:contentDescription="@string/take_photo_img_content_description"
-            android:src="@drawable/ic_add_photo"
-            app:layout_constraintEnd_toStartOf="@+id/v_guideline_1"
+            android:onClick="@{() -> viewModel.onTakePhotoClick()}"
+            android:padding="8dp"
+            android:src="@drawable/ic_take_photo"
+            android:visibility="@{viewModel.isPlantImageAvailable ? View.GONE : View.VISIBLE}"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/plant_info_card"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toEndOf="@+id/pick_image_img"
             app:layout_constraintTop_toTopOf="parent"
             tools:visibility="visible" />
+
+        <ImageView
+            android:id="@+id/pick_image_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/img_ripple"
+            android:contentDescription="@string/pick_photo_img_content_description"
+            android:onClick="@{() -> viewModel.onPickImageClick()}"
+            android:padding="8dp"
+            android:src="@drawable/ic_pick_image"
+            android:visibility="@{viewModel.isPlantImageAvailable ? View.GONE : View.VISIBLE}"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/take_photo_img"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/plant_img" />
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/next_watering_card"
@@ -282,6 +283,28 @@
                 tools:text="1d:15h:23m:15s"
                 tools:visibility="visible" />
         </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:id="@+id/popup_anchor_txt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="@id/plant_img"
+            app:layout_constraintEnd_toEndOf="@+id/plant_img"
+            app:layout_constraintStart_toStartOf="@id/plant_img"
+            app:layout_constraintTop_toTopOf="@+id/plant_img" />
+
+        <ImageView
+            android:id="@+id/hourglass_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/hourglass"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@+id/plant_img"
+            app:layout_constraintEnd_toEndOf="@+id/plant_img"
+            app:layout_constraintStart_toStartOf="@+id/plant_img"
+            app:layout_constraintTop_toTopOf="@+id/plant_img"
+            app:srcCompat="@drawable/ic_hourglass" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

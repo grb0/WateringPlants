@@ -19,7 +19,7 @@ class WateringPlantsViewModel : ViewModel() {
     //endregion
 
     //region Helper methods
-    fun processBotomNavigationItemId(@IdRes itemId: Int) {
+    fun processBottomNavigationItemId(@IdRes itemId: Int) {
         _toFragmentEvent.value = when (itemId) {
             R.id.plants -> Event(R.id.plantsFragment)
             R.id.encyclopedia -> Event(R.id.encyclopediaFragment)

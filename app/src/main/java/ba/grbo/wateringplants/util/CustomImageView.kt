@@ -11,11 +11,7 @@ class CustomImageView : AppCompatImageView {
 
     constructor(context: Context) : super(context)
     constructor(context: Context, attributeSet: AttributeSet?) : super(context, attributeSet)
-    constructor(
-        context: Context,
-        attributeSet: AttributeSet?,
-        deffStyleAttr: Int
-    ) : super(context, attributeSet, deffStyleAttr)
+    constructor(context: Context, attributeSet: AttributeSet?, deffStyleAttr: Int) : super(context, attributeSet, deffStyleAttr)
 
     override fun onVisibilityChanged(changedView: View, visibility: Int) {
         if (id == changedView.id) onVisibilityChangedListener?.invoke()

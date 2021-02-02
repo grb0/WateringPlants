@@ -32,12 +32,13 @@ class WateringPlantsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         binding = DataBindingUtil.setContentView<ActivityWateringPlantsBinding>(
-            this,
-            R.layout.activity_watering_plants
+                this,
+                R.layout.activity_watering_plants
         ).apply {
             lifecycleOwner = this@WateringPlantsActivity
-            processBottomNavigationItemId = viewModel::processBotomNavigationItemId
+            processBottomNavigationItemId = viewModel::processBottomNavigationItemId
             actionBarTitleId = viewModel.actionBarTitleId
+
             setSupportActionBar(materialToolbar)
         }
 

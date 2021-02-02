@@ -1,5 +1,6 @@
 package ba.grbo.wateringplants.ui.fragments
 
+import android.content.Context
 import android.os.Bundle
 import android.view.*
 import android.view.animation.Animation
@@ -23,9 +24,9 @@ class PlantsFragment : Fragment() {
 
     //region Overriden methods
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?
     ): View {
         setHasOptionsMenu(true)
         viewModel.observeEvents()
@@ -38,8 +39,8 @@ class PlantsFragment : Fragment() {
         inflater.inflate(R.menu.app_bar_plants, menu)
     }
 
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
-        super.onActivityCreated(savedInstanceState)
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
         activity = requireActivity() as WateringPlantsActivity
     }
 
@@ -49,12 +50,12 @@ class PlantsFragment : Fragment() {
 
     override fun onCreateAnimation(transit: Int, enter: Boolean, nextAnim: Int): Animation? {
         return onCreateAnimation(
-            transit,
-            enter,
-            nextAnim,
-            requireContext(),
-            viewModel::onEnterAnimationStart,
-            viewModel::onEnterAnimationEnd,
+                transit,
+                enter,
+                nextAnim,
+                requireContext(),
+                viewModel::onEnterAnimationStart,
+                viewModel::onEnterAnimationEnd,
         ) { t, e, a -> super.onCreateAnimation(t, e, a) }
     }
     //endregion

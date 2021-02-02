@@ -4,14 +4,12 @@ import android.view.View
 import androidx.databinding.BindingAdapter
 import androidx.databinding.InverseBindingAdapter
 import androidx.databinding.InverseBindingListener
-import ba.grbo.wateringplants.R
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.android.material.textfield.TextInputEditText
 
 @BindingAdapter("setOnItemSelectedListener")
-fun BottomNavigationView.bindSetOnItemSelectedListener(processBotomNavigationItemId: (Int) -> Unit) {
+fun BottomNavigationView.bindSetOnItemSelectedListener(processBottomNavigationItemId: (Int) -> Unit) {
     setOnNavigationItemSelectedListener {
-        processBotomNavigationItemId(it.itemId)
+        processBottomNavigationItemId(it.itemId)
         true
     }
 
@@ -19,46 +17,13 @@ fun BottomNavigationView.bindSetOnItemSelectedListener(processBotomNavigationIte
     setOnNavigationItemReselectedListener { }
 }
 
-@BindingAdapter(
-    "onTouchListener",
-    "onReleaseFocus",
-    requireAll = false
-)
-fun TextInputEditText.bindOnTouchListener(
-    onTouchListener: OnTouchListener,
-    onReleaseFocus: (() -> Unit)?
-) {
-    setOnFocusChangeListener { _, hasFocus ->
-        if (hasFocus) onTouchListener.run {
-            showKeyboard(this@bindOnTouchListener)
-            setOnTouchListener {
-                onReleaseFocus(
-                    this@bindOnTouchListener,
-                    it,
-                    this@bindOnTouchListener::clearFocus
-                )
-            }
-            if (id != R.id.watering_period_edit_text) {
-                onReleaseFocus?.invoke()
-            }
-        } else onTouchListener.run {
-            hideKeyBoard(this@bindOnTouchListener)
-            setOnTouchListener(null)
-            if (id == R.id.plant_description_edit_text) {
-                val text = text.toString()
-                if (text.isNotEmpty()) setText(removeExcessiveSpace(text))
-            }
-        }
-    }
-}
-
 @BindingAdapter("visibility")
 fun View.bindVisibility(visibility: Boolean?) {
-    visibility?.run {
-        if ((visibility && this@bindVisibility.visibility != View.VISIBLE) ||
-            (!visibility && this@bindVisibility.visibility != View.GONE)
+    visibility?.let {
+        if ((it && this.visibility != View.VISIBLE) ||
+                (!it && this.visibility != View.GONE)
         ) {
-            this@bindVisibility.visibility = if (visibility) View.VISIBLE else View.GONE
+            this.visibility = if (it) View.VISIBLE else View.GONE
         }
     }
 }
