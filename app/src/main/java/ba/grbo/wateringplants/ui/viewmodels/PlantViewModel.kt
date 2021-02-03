@@ -77,9 +77,9 @@ class PlantViewModel : ViewModel() {
     val plantImage: LiveData<Bitmap>
         get() = _plantImage
 
-    private val _showHourglassEvent = MutableLiveData<Boolean>()
-    val showHourglassEvent: LiveData<Boolean>
-        get() = _showHourglassEvent
+    private val _showImageLoadingProgressEvent = MutableLiveData<Boolean>()
+    val showImageLoadingProgressEvent: LiveData<Boolean>
+        get() = _showImageLoadingProgressEvent
 
     private val _removeCurrentImageEvent = MutableLiveData<Boolean?>()
     val removeCurrentImageEvent: LiveData<Boolean?>
@@ -98,9 +98,6 @@ class PlantViewModel : ViewModel() {
         }
 
     private var realUriPath: String? = null
-
-//    val isPlantImageAvailable: LiveData<Boolean> =
-//        Transformations.map(_requestPickedImageDependenciesEvent) { it != null }
 
     val isPlantImageAvailable = _requestPickedImageDependenciesEvent.combineWith(
             _requestTakenPhotoDependenciesEvent
@@ -185,7 +182,7 @@ class PlantViewModel : ViewModel() {
             if (this.realUriPath != realUriPath) {
                 rotationAngle = 0f // New image picked, reset rotationAngle
                 if (_plantImage.value != null) _removeCurrentImageEvent.value = true
-                _showHourglassEvent.value = true
+                _showImageLoadingProgressEvent.value = true
                 _requestPickedImageDependenciesEvent.value = Event(it)
             }
         }
@@ -221,7 +218,7 @@ class PlantViewModel : ViewModel() {
 
     fun onPlantImageLongClick(): Boolean {
         _plantImage.value?.run {
-            _showHourglassEvent.value?.let { if (!it) _showPopupMenuEvent.value = Event(Unit) }
+            _showImageLoadingProgressEvent.value?.let { if (!it) _showPopupMenuEvent.value = Event(Unit) }
         }
         return true
     }
@@ -229,7 +226,7 @@ class PlantViewModel : ViewModel() {
     private fun onBitmapLoaded(bitmap: Bitmap) {
         if (rotationAngle.hasToBeRotated) onPlantImageRotate(rotationAngle)
         else {
-            _showHourglassEvent.value = false
+            _showImageLoadingProgressEvent.value = false
             _removeCurrentImageEvent.value = null
             _plantImage.value = bitmap
         }

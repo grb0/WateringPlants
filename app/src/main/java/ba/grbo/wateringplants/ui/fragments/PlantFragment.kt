@@ -168,8 +168,8 @@ class PlantFragment : Fragment() {
             activity.triggerContextualActionBar()
         }
         observeLiveData(plantImage, viewLifecycleOwner) { setBitmapToImageView(it) }
-        observeLiveData(showHourglassEvent, viewLifecycleOwner) {
-            setHourglassVisibility(it.toVisibility)
+        observeLiveData(showImageLoadingProgressEvent, viewLifecycleOwner) {
+            showImageLoadingProgress(it.toVisibility)
         }
         observeLiveData(removeCurrentImageEvent, viewLifecycleOwner) {
             it?.run { removeCurrentImage() }
@@ -208,8 +208,8 @@ class PlantFragment : Fragment() {
         popupMenu.show()
     }
 
-    private fun setHourglassVisibility(visibility: Int) {
-        binding.hourglassImg.visibility = visibility
+    private fun showImageLoadingProgress(visibility: Int) {
+        binding.imgLoadingProgress.visibility = visibility
     }
 
     private fun setBitmapToImageView(image: Bitmap) {

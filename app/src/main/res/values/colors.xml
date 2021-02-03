@@ -9,5 +9,5 @@
     <color name="white">#FFFFFFFF</color>
     <color name="light_gray">#FAFAFA</color>
 
-    <color name="missing_image">#D1D0D0</color>
+    <color name="missing_image">#99D1D0D0</color>
 </resources>
