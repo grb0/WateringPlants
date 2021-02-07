@@ -2,28 +2,26 @@ package ba.grbo.wateringplants.ui.fragments
 
 import android.Manifest
 import android.content.ActivityNotFoundException
-import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
-import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.drawable.InsetDrawable
 import android.net.Uri
 import android.os.Bundle
-import android.provider.DocumentsContract
 import android.provider.MediaStore
-import android.text.TextUtils
 import android.util.TypedValue
 import android.view.*
 import android.view.animation.Animation
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.appcompat.view.ActionMode
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnLayout
+import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -32,11 +30,13 @@ import ba.grbo.wateringplants.databinding.FragmentPlantBinding
 import ba.grbo.wateringplants.ui.activities.WateringPlantsActivity
 import ba.grbo.wateringplants.ui.viewmodels.PlantViewModel
 import ba.grbo.wateringplants.util.*
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import java.text.SimpleDateFormat
 import java.util.*
 
-
+@AndroidEntryPoint
 class PlantFragment : Fragment() {
     //region Properties
     private val imageMimeType = "image/*"
@@ -44,15 +44,15 @@ class PlantFragment : Fragment() {
     private val plantViewModel: PlantViewModel by viewModels()
 
     private val requestReadExternalStoragePermission = registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission()
     ) { plantViewModel.onAskForReadExternalStoragePermissionResultArrival(it) }
 
     private val requestCameraPermission = registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission()
     ) { plantViewModel.onAskForCameraPermissionResultArrival(it) }
 
     private val requestBothPermissions = registerForActivityResult(
-            ActivityResultContracts.RequestMultiplePermissions()
+        ActivityResultContracts.RequestMultiplePermissions()
     ) { plantViewModel.onAskForBothPermissionsResultArival(it) }
 
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) {
@@ -77,26 +77,23 @@ class PlantFragment : Fragment() {
 
     //region Overriden methods
     override fun onCreateView(
-            inflater: LayoutInflater,
-            container: ViewGroup?,
-            savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View {
         savedInstanceState?.run { takenPhotoUri = getParcelable(_takenPhotoUri) }
-        plantViewModel.observeEvents()
+        plantViewModel.collectFlows()
         binding = FragmentPlantBinding.inflate(inflater, container, false).apply {
-            lifecycleOwner = viewLifecycleOwner
-            viewModel = plantViewModel
-
             plantFragmentConstraintLayout.setOnFocusChangeListener { _, hasFocus ->
                 plantViewModel.plantFragmentConstraintLayoutOnFocusChange(hasFocus)
             }
 
             arrayOf(plantNameEditText, plantDescriptionEditText, wateringPeriodEditText).forEach {
                 it.setCustomOnFocusChangeListener(
-                        ::showKeyboard,
-                        ::hideKeyboard,
-                        ::setOnTouchListener,
-                        plantViewModel::onEditTextReleaseFocus
+                    ::showKeyboard,
+                    ::hideKeyboard,
+                    ::setOnTouchListener,
+                    plantViewModel::onEditTextReleaseFocus
                 )
             }
 
@@ -109,9 +106,9 @@ class PlantFragment : Fragment() {
                     setOptionalIconsVisible(true)
                     visibleItems.forEach {
                         val iconMarginPx = TypedValue.applyDimension(
-                                TypedValue.COMPLEX_UNIT_DIP,
-                                0f,
-                                resources.displayMetrics
+                            TypedValue.COMPLEX_UNIT_DIP,
+                            0f,
+                            resources.displayMetrics
                         ).toInt()
 
                         it.icon?.run {
@@ -133,7 +130,23 @@ class PlantFragment : Fragment() {
                 false // listener did not consume the event, will be passed down to onLongClickL...
             }
 
+            calendarImg.setOnClickListener { plantViewModel.onCalendarImgClick() }
+            takePhotoImg.setOnClickListener { plantViewModel.onTakePhotoClick() }
+            pickImageImg.setOnClickListener { plantViewModel.onPickImageClick() }
             plantImg.setOnLongClickListener { plantViewModel.onPlantImageLongClick() }
+
+            calendarImg.setOnVisibilityChangedListener {
+                plantViewModel.setWateringPeriodVisibility(it.toVisibility)
+            }
+
+            wateringPeriodLayout.setOnVisibilityChangedListener { view, visibility ->
+                if (visibility == View.VISIBLE) view.requestFocus()
+                else view.clearFocus()
+            }
+
+            wateringPeriodEditText.addTextChangedListener {
+                plantViewModel.setWateringPeriodText(it.toString())
+            }
         }
 
         return binding.root
@@ -152,57 +165,65 @@ class PlantFragment : Fragment() {
 
     override fun onCreateAnimation(transit: Int, enter: Boolean, nextAnim: Int): Animation? {
         return onCreateAnimation(
-                transit,
-                enter,
-                nextAnim,
-                requireContext(),
-                plantViewModel::onEnterAnimationStart,
-                plantViewModel::onEnterAnimationEnd
+            transit,
+            enter,
+            nextAnim,
+            requireContext(),
+            plantViewModel::onEnterAnimationStart,
+            plantViewModel::onEnterAnimationEnd
         ) { t, e, a -> super.onCreateAnimation(t, e, a) }
     }
     //endregion
 
     //region LiveData observers
-    private fun PlantViewModel.observeEvents() {
-        observeLiveData(triggerContextualActionBar, viewLifecycleOwner) {
-            activity.triggerContextualActionBar()
+    private fun PlantViewModel.collectFlows() {
+        collect(triggerContextualActionBar) {
+            triggerContextualActionBar(it.first, it.second.toVisibility)
         }
-        observeLiveData(plantImage, viewLifecycleOwner) { setBitmapToImageView(it) }
-        observeLiveData(showImageLoadingProgressEvent, viewLifecycleOwner) {
-            showImageLoadingProgress(it.toVisibility)
-        }
-        observeLiveData(removeCurrentImageEvent, viewLifecycleOwner) {
-            it?.run { removeCurrentImage() }
-        }
-        observeEvent(requestPickedImageDependenciesEvent, viewLifecycleOwner) {
+        collect(plantImage) {setBitmapToImageView(it)}
+        collect(showImageLoadingProgressEvent) { showImageLoadingProgress(it.toVisibility) }
+        collect(removeCurrentImageEvent) { it?.run { removeCurrentImage() } }
+        collect(requestPickedImageDependenciesEvent) {
             it?.also { providePickedImageDependencies(it) }
         }
-
-        observeEvent(requestTakenPhotoDependenciesEvent, viewLifecycleOwner) {
-            provideTakenPhotoDependencies()
-        }
-
-        observeEvent(checkIfReadExternalStoragePermissionWasAlreadyGiven, viewLifecycleOwner) {
+        collect(requestTakenPhotoDependenciesEvent) { provideTakenPhotoDependencies() }
+        collect(showPickImageTakePhoto) { setPickImageTakePhotoVisibility(it.toVisibility) }
+        collect(checkIfReadExternalStoragePermissionWasAlreadyGiven) {
             wasReadExternalStoragePermissionAlreadyGranted()
         }
-        observeEvent(checkIfBothPermissionsWereAlreadyGiven, viewLifecycleOwner) {
+        collect(checkIfBothPermissionsWereAlreadyGiven) {
             wereBothPermissionsAlreadyGivenResultArrival()
         }
-        observeEvent(askForReadExternalStoragePermissionEvent, viewLifecycleOwner) {
-            askForReadExternalStoragePermission(it)
-        }
-        observeEvent(askForCameraPermissionEvent, viewLifecycleOwner) { askForCameraPermission(it) }
-        observeEvent(askForBothPermissionsEvent, viewLifecycleOwner) { askForBothPermissions(it) }
-        observeEvent(showPopupMenuEvent, viewLifecycleOwner) { showPopupMenu() }
-        observeEvent(pickImageEvent, viewLifecycleOwner) { pickImage() }
-        observeEvent(takePhotoEvent, viewLifecycleOwner) { takePhoto() }
-        observeEvent(enterAnimationEndEvent, viewLifecycleOwner) {
-            this@PlantFragment.onEnterAnimationEnd()
-        }
+        collect(askForReadExternalStoragePermissionEvent) { askForReadExternalStoragePermission(it) }
+        collect(askForCameraPermissionEvent) { askForCameraPermission(it) }
+        collect(askForBothPermissionsEvent) { askForBothPermissions(it) }
+        collect(showPopupMenuEvent) { showPopupMenu() }
+        collect(pickImageEvent) { pickImage() }
+        collect(takePhotoEvent) { takePhoto() }
+        collect(enterAnimationEndEvent) { this@PlantFragment.onEnterAnimationEnd() }
+        collect(wateringPeriodVisibility) { setViewsVisibilities(it) }
+        collect(wateringPeriodText) { setViewsTexts(it) }
     }
     //endregion
 
     //region Helper methods
+    private fun setViewsTexts(text: String) {
+        binding.calendarText.text = text
+        binding.wateringPeriodEditText.setText(text)
+        binding.wateringPeriodEditText.setSelection(text.length)
+    }
+
+    private fun setViewsVisibilities(visibility: Boolean) {
+        binding.calendarImg.visibility = visibility.toVisibility
+        binding.wateringPeriodLayout.visibility = (!visibility).toVisibility
+        binding.calendarText.visibility = visibility.toVisibility
+    }
+
+    private fun setPickImageTakePhotoVisibility(visibility: Int) {
+        binding.pickImageImg.visibility = visibility
+        binding.takePhotoImg.visibility = visibility
+    }
+
     @Suppress("RestrictedApi")
     private fun showPopupMenu() {
         popupMenu.show()
@@ -210,6 +231,10 @@ class PlantFragment : Fragment() {
 
     private fun showImageLoadingProgress(visibility: Int) {
         binding.imgLoadingProgress.visibility = visibility
+    }
+
+    private fun triggerContextualActionBar(@StringRes actionBarTitle: Int, visibility: Int) {
+        activity.triggerContextualActionBar(actionBarTitle, visibility)
     }
 
     private fun setBitmapToImageView(image: Bitmap) {
@@ -223,10 +248,10 @@ class PlantFragment : Fragment() {
     private fun providePickedImageDependencies(uri: Uri, realUriPath: String? = this.realUriPath) {
         binding.plantImg.doOnLayout {
             plantViewModel.onImageDependenciesProvided(
-                    it.width,
-                    it.height,
-                    arrayOf(openInputStream(uri), openInputStream(uri)),
-                    realUriPath
+                it.width,
+                it.height,
+                arrayOf(openInputStream(uri), openInputStream(uri)),
+                realUriPath
             )
         }
     }
@@ -266,8 +291,8 @@ class PlantFragment : Fragment() {
         }
 
         takenPhotoUri = activity.contentResolver.insert(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                values
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            values
         )
 
         return takenPhotoUri
@@ -287,8 +312,8 @@ class PlantFragment : Fragment() {
 
     private fun wasReadExternalStoragePermissionAlreadyGranted() {
         val wasGranted = ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.READ_EXTERNAL_STORAGE
+            requireContext(),
+            Manifest.permission.READ_EXTERNAL_STORAGE
         ) == PackageManager.PERMISSION_GRANTED
 
         plantViewModel.onWasReadExternalStoragePermissionWasAlreadyGivenResultArrival(wasGranted)
@@ -296,17 +321,17 @@ class PlantFragment : Fragment() {
 
     private fun wereBothPermissionsAlreadyGivenResultArrival() {
         val wasReadExternalStoragePermissionGranted = ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.READ_EXTERNAL_STORAGE
+            requireContext(),
+            Manifest.permission.READ_EXTERNAL_STORAGE
         ) == PackageManager.PERMISSION_GRANTED
 
         val wasCameraPermissionGranted = ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.CAMERA
+            requireContext(),
+            Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED
 
         plantViewModel.onWereBothPermissionsAlreadyGivenResultArrival(
-                wasReadExternalStoragePermissionGranted to wasCameraPermissionGranted
+            wasReadExternalStoragePermissionGranted to wasCameraPermissionGranted
         )
     }
 
@@ -325,14 +350,17 @@ class PlantFragment : Fragment() {
         activity.onTouchListener = onTouchListener
     }
 
-    private fun WateringPlantsActivity.triggerContextualActionBar() {
-        setContextualActionBar()
-        setBottomNavigationVisibility(View.GONE)
+    private fun WateringPlantsActivity.triggerContextualActionBar(
+        @StringRes actionbarTitle: Int,
+        visibility: Int
+    ) {
+        setContextualActionBar(actionbarTitle)
+        setBottomNavigationVisibility(visibility)
     }
 
-    private fun WateringPlantsActivity.setContextualActionBar() {
+    private fun WateringPlantsActivity.setContextualActionBar(@StringRes actionBarTitle: Int) {
         startSupportActionMode(getActionModeCallback())?.apply {
-            title = getText(R.string.add_plant)
+            title = getText(actionBarTitle)
         }
     }
 
@@ -346,7 +374,7 @@ class PlantFragment : Fragment() {
         }
 
         override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
-            return this@PlantFragment.onActionItemClicked(mode, item)
+            return processClickedActionItem(mode, item)
         }
 
         override fun onDestroyActionMode(mode: ActionMode?) {
@@ -365,7 +393,7 @@ class PlantFragment : Fragment() {
 
     private fun onPrepareActionMode() = false
 
-    private fun onActionItemClicked(mode: ActionMode?, item: MenuItem?) = when (item?.itemId) {
+    private fun processClickedActionItem(mode: ActionMode?, item: MenuItem?) = when (item?.itemId) {
         R.id.create -> {
             mode?.finish()
             true
@@ -375,93 +403,6 @@ class PlantFragment : Fragment() {
 
     private fun onEnterAnimationEnd() {
         // TODO enable views
-    }
-
-    private fun Uri.getRealPathFromUriAPI19(context: Context): String? {
-        if (DocumentsContract.isDocumentUri(context, this)) { // DownloadsProvider
-            if (isDownloadsDocument(this)) { // DownloadsProvider
-                val id = DocumentsContract.getDocumentId(this)
-                if (!TextUtils.isEmpty(id)) {
-                    if (id.startsWith("raw:")) {
-                        return id.replaceFirst("raw:", "")
-                    }
-                    return try {
-                        val contentUri = ContentUris.withAppendedId(
-                                Uri.parse("content://downloads/public_downloads"),
-                                java.lang.Long.valueOf(id)
-                        )
-
-                        getDataColumn(context, contentUri, null, null)
-                    } catch (e: NumberFormatException) {
-                        null
-                    }
-                }
-            } else if (isMediaDocument(this)) { // MediaProvider
-                val docId = DocumentsContract.getDocumentId(this)
-                val split = docId.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-
-                val contentUri = when (split[0]) {
-                    "image" -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-                    "video" -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-                    "audio" -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-                    else -> null
-                }
-
-                val selection = "_id=?"
-                val selectionArgs = arrayOf(split[1])
-
-                return getDataColumn(context, contentUri, selection, selectionArgs)
-            }
-        } else if ("content".equals(this.scheme, ignoreCase = true)) { // MediaStore (and general)
-            return if (isGooglePhotosUri(this)) this.lastPathSegment
-            else getDataColumn(context, this, null, null)
-        } else if ("file".equals(this.scheme, ignoreCase = true)) { // File
-            return this.path
-        }
-
-
-        return null
-    }
-
-    private fun getDataColumn(
-            context: Context,
-            uri: Uri?,
-            selection: String?,
-            selectionArgs: Array<String>?
-    ): String? {
-
-        var cursor: Cursor? = null
-        val column = "_data"
-
-        try {
-            cursor =
-                    context.contentResolver.query(
-                            uri!!,
-                            arrayOf(column),
-                            selection,
-                            selectionArgs,
-                            null
-                    )
-            if (cursor != null && cursor.moveToFirst()) {
-                val index = cursor.getColumnIndexOrThrow(column)
-                return cursor.getString(index)
-            }
-        } finally {
-            cursor?.close()
-        }
-        return null
-    }
-
-    private fun isDownloadsDocument(uri: Uri): Boolean {
-        return "com.android.providers.downloads.documents" == uri.authority
-    }
-
-    private fun isMediaDocument(uri: Uri): Boolean {
-        return "com.android.providers.media.documents" == uri.authority
-    }
-
-    private fun isGooglePhotosUri(uri: Uri): Boolean {
-        return "com.google.android.apps.photos.content" == uri.authority
     }
     //endregion
 }

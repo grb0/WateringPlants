@@ -1,40 +1,44 @@
 package ba.grbo.wateringplants.ui.viewmodels
 
 import androidx.annotation.IdRes
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import ba.grbo.wateringplants.R
-import ba.grbo.wateringplants.util.Event
+import ba.grbo.wateringplants.util.SharedStateLikeFlow
+import ba.grbo.wateringplants.util.SingleSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 class WateringPlantsViewModel : ViewModel() {
     //region Properties
-    private val _toFragmentEvent = MutableLiveData<Event<@IdRes Int>>()
-    val toFragmentEvent: LiveData<Event<Int>>
+    private val _toFragmentEvent = SingleSharedFlow<@IdRes Int>()
+    val toFragmentEvent: SharedFlow<Int>
         get() = _toFragmentEvent
 
-    private val _actionBarTitleId = MutableLiveData<@IdRes Int>()
-    val actionBarTitleId: LiveData<Int>
-        get() = _actionBarTitleId
+    private val _actionBarTitleId = SharedStateLikeFlow<@StringRes Int>()
+    val actionBarTitleId = _actionBarTitleId.distinctUntilChanged()
     //endregion
 
     //region Helper methods
-    fun processBottomNavigationItemId(@IdRes itemId: Int) {
-        _toFragmentEvent.value = when (itemId) {
-            R.id.plants -> Event(R.id.plantsFragment)
-            R.id.encyclopedia -> Event(R.id.encyclopediaFragment)
-            R.id.favorites -> Event(R.id.favoritesFragment)
-            R.id.settings -> Event(R.id.settingsFragment)
-            else -> throw IllegalArgumentException("Unknown itemId: $itemId")
-        }
+    fun processBottomNavigationItemId(@IdRes itemId: Int): Boolean {
+        _toFragmentEvent.tryEmit(
+            when (itemId) {
+                R.id.plants -> R.id.plantsFragment
+                R.id.encyclopedia -> R.id.encyclopediaFragment
+                R.id.favorites -> R.id.favoritesFragment
+                R.id.settings -> R.id.settingsFragment
+                else -> throw IllegalArgumentException("Unknown itemId: $itemId")
+            }
+        )
+        return true
     }
 
     fun processDestinationId(@IdRes destinationId: Int) {
         when (destinationId) {
-            R.id.plantsFragment -> _actionBarTitleId.value = R.string.plants
-            R.id.encyclopediaFragment -> _actionBarTitleId.value = R.string.encyclopedia
-            R.id.favoritesFragment -> _actionBarTitleId.value = R.string.favorites
-            R.id.settingsFragment -> _actionBarTitleId.value = R.string.settings
+            R.id.plantsFragment -> _actionBarTitleId.tryEmit(R.string.plants)
+            R.id.encyclopediaFragment -> _actionBarTitleId.tryEmit(R.string.encyclopedia)
+            R.id.favoritesFragment -> _actionBarTitleId.tryEmit(R.string.favorites)
+            R.id.settingsFragment -> _actionBarTitleId.tryEmit(R.string.settings)
         }
     }
     //endregion

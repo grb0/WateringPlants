@@ -6,88 +6,40 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
 import androidx.annotation.IdRes
+import androidx.annotation.StringRes
 import androidx.lifecycle.*
 import ba.grbo.wateringplants.R
-import ba.grbo.wateringplants.util.Event
-import ba.grbo.wateringplants.util.combineWith
-import ba.grbo.wateringplants.util.hasToBeRotated
+import ba.grbo.wateringplants.data.Plant
+import ba.grbo.wateringplants.data.source.PlantsRepository
+import ba.grbo.wateringplants.util.*
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
+import javax.inject.Inject
 import kotlin.coroutines.CoroutineContext
 
-class PlantViewModel : ViewModel() {
+@HiltViewModel
+class PlantViewModel @Inject constructor(
+    private val repository: PlantsRepository
+) : ViewModel() {
     //region Properties
+    val plant = Plant(
+        MutableStateFlow("Forest oak"),
+        flowOf("Forest oaks are found in forests."),
+        flowOf("1"),
+    )
+
     private val readExternalStoragePermission = Manifest.permission.READ_EXTERNAL_STORAGE
     private val cameraPermission = Manifest.permission.CAMERA
-
-    private val _triggerContextualActionBar = MutableLiveData<Boolean>()
-    val triggerContextualActionBar: LiveData<Boolean>
-        get() = _triggerContextualActionBar
-
-    private val _enterAnimationEndEvent = MutableLiveData<Event<Unit>>()
-    val enterAnimationEndEvent: LiveData<Event<Unit>>
-        get() = _enterAnimationEndEvent
-
-    private val _checkIfReadExternalStoragePermissionWasAlreadyGiven =
-            MutableLiveData<Event<Unit>>()
-    val checkIfReadExternalStoragePermissionWasAlreadyGiven: LiveData<Event<Unit>>
-        get() = _checkIfReadExternalStoragePermissionWasAlreadyGiven
-
-    private val _checkIfBothPermissionsWereAlreadyGiven = MutableLiveData<Event<Unit>>()
-    val checkIfBothPermissionsWereAlreadyGiven: LiveData<Event<Unit>>
-        get() = _checkIfBothPermissionsWereAlreadyGiven
-
-    private val _askForReadExternalStoragePermissionEvent = MutableLiveData<Event<String>>()
-    val askForReadExternalStoragePermissionEvent: LiveData<Event<String>>
-        get() = _askForReadExternalStoragePermissionEvent
-
-    private val _askForCameraPermissionEvent = MutableLiveData<Event<String>>()
-    val askForCameraPermissionEvent: LiveData<Event<String>>
-        get() = _askForCameraPermissionEvent
-
-    private val _askForBothPermissionsEvent = MutableLiveData<Event<Array<String>>>()
-    val askForBothPermissionsEvent: LiveData<Event<Array<String>>>
-        get() = _askForBothPermissionsEvent
-
-    private val _pickImageEvent = MutableLiveData<Event<Unit>>()
-    val pickImageEvent: LiveData<Event<Unit>>
-        get() = _pickImageEvent
-
-    private val _takePhotoEvent = MutableLiveData<Event<Unit>>()
-    val takePhotoEvent: LiveData<Event<Unit>>
-        get() = _takePhotoEvent
-
-    private val _requestPickedImageDependenciesEvent = MutableLiveData<Event<Uri?>>()
-    val requestPickedImageDependenciesEvent: LiveData<Event<Uri?>>
-        get() = _requestPickedImageDependenciesEvent
-
-    private val _requestTakenPhotoDependenciesEvent = MutableLiveData<Event<Unit>>()
-    val requestTakenPhotoDependenciesEvent: LiveData<Event<Unit>>
-        get() = _requestTakenPhotoDependenciesEvent
-
-    private val _showPopupMenuEvent = MutableLiveData<Event<Unit>>()
-    val showPopupMenuEvent: LiveData<Event<Unit>>
-        get() = _showPopupMenuEvent
-
-    private val _plantImage = MutableLiveData<Bitmap>()
-    val plantImage: LiveData<Bitmap>
-        get() = _plantImage
-
-    private val _showImageLoadingProgressEvent = MutableLiveData<Boolean>()
-    val showImageLoadingProgressEvent: LiveData<Boolean>
-        get() = _showImageLoadingProgressEvent
-
-    private val _removeCurrentImageEvent = MutableLiveData<Boolean?>()
-    val removeCurrentImageEvent: LiveData<Boolean?>
-        get() = _removeCurrentImageEvent
-
     private var isReadExternalStoragePermissionGranted = false
     private var isCameraPermissionGranted = false
-
+    private var realUriPath: String? = null
     private var rotationAngle = 0f
         private set(value) {
             field = when (value) {
@@ -97,46 +49,115 @@ class PlantViewModel : ViewModel() {
             }
         }
 
-    private var realUriPath: String? = null
+    private val _triggerContextualActionBar = SharedStateLikeFlow<Pair<@StringRes Int, Boolean>>()
+    val triggerContextualActionBar = _triggerContextualActionBar.distinctUntilChanged()
 
-    val isPlantImageAvailable = _requestPickedImageDependenciesEvent.combineWith(
-            _requestTakenPhotoDependenciesEvent
-    ) { pickedImageDependenciesEvent, takenPhotoDependenciesEvent ->
-        pickedImageDependenciesEvent != null || takenPhotoDependenciesEvent != null
+    private val _plantImage = SharedStateLikeFlow<Bitmap>()
+    val plantImage = _plantImage.distinctUntilChanged()
+
+    private val _showImageLoadingProgressEvent = SharedStateLikeFlow<Boolean>()
+    val showImageLoadingProgressEvent = _showImageLoadingProgressEvent.distinctUntilChanged()
+
+    private val _removeCurrentImageEvent = MutableStateFlow<Unit?>(null)
+    val removeCurrentImageEvent: StateFlow<Unit?>
+        get() = _removeCurrentImageEvent
+
+    // Single Events
+    private val _requestPickedImageDependenciesEvent = SingleSharedFlow<Uri?>()
+    val requestPickedImageDependenciesEvent: SharedFlow<Uri?>
+        get() = _requestPickedImageDependenciesEvent
+
+    private val _requestTakenPhotoDependenciesEvent = SingleSharedFlow<Unit>()
+    val requestTakenPhotoDependenciesEvent: SharedFlow<Unit>
+        get() = _requestTakenPhotoDependenciesEvent
+
+    private val _showPickImageTakePhoto = MutableStateFlow(true)
+    val showPickImageTakePhoto: StateFlow<Boolean>
+        get() = _showPickImageTakePhoto
+
+    init {
+        _requestPickedImageDependenciesEvent
+            .onEach { _showPickImageTakePhoto.value = it == null }
+            .launchIn(viewModelScope)
+
+        _requestTakenPhotoDependenciesEvent
+            .onEach { _showPickImageTakePhoto.value = it != Unit }
+            .launchIn(viewModelScope)
     }
 
-    // first value represents text, second one visibility
-    val wateringPeriod = MutableLiveData("1") to MutableLiveData(true)
+    private val _checkIfReadExternalStoragePermissionWasAlreadyGiven = SingleSharedFlow<Unit>()
+    val checkIfReadExternalStoragePermissionWasAlreadyGiven: SharedFlow<Unit>
+        get() = _checkIfReadExternalStoragePermissionWasAlreadyGiven
+
+    private val _checkIfBothPermissionsWereAlreadyGiven = SingleSharedFlow<Unit>()
+    val checkIfBothPermissionsWereAlreadyGiven: SharedFlow<Unit>
+        get() = _checkIfBothPermissionsWereAlreadyGiven
+
+    private val _askForReadExternalStoragePermissionEvent = SingleSharedFlow<String>()
+    val askForReadExternalStoragePermissionEvent: SharedFlow<String>
+        get() = _askForReadExternalStoragePermissionEvent
+
+    private val _askForCameraPermissionEvent = SingleSharedFlow<String>()
+    val askForCameraPermissionEvent: SharedFlow<String>
+        get() = _askForCameraPermissionEvent
+
+    private val _askForBothPermissionsEvent = SingleSharedFlow<Array<String>>()
+    val askForBothPermissionsEvent: SharedFlow<Array<String>>
+        get() = _askForBothPermissionsEvent
+
+    private val _showPopupMenuEvent = SingleSharedFlow<Unit>()
+    val showPopupMenuEvent: SharedFlow<Unit>
+        get() = _showPopupMenuEvent
+
+    private val _pickImageEvent = SingleSharedFlow<Unit>()
+    val pickImageEvent: SharedFlow<Unit>
+        get() = _pickImageEvent
+
+    private val _takePhotoEvent = SingleSharedFlow<Unit>()
+    val takePhotoEvent: SharedFlow<Unit>
+        get() = _takePhotoEvent
+
+    private val _enterAnimationEndEvent = SingleSharedFlow<Unit>()
+    val enterAnimationEndEvent: SharedFlow<Unit>
+        get() = _enterAnimationEndEvent
+
+    private val _wateringPeriodVisibility = MutableStateFlow(true)
+    val wateringPeriodVisibility: StateFlow<Boolean>
+        get() = _wateringPeriodVisibility
+
+    private val _wateringPeriodText = MutableStateFlow("1")
+    val wateringPeriodText: StateFlow<String>
+        get() = _wateringPeriodText
     //endregion
 
     //region Helper methods
     fun onEnterAnimationStart() {
-        _triggerContextualActionBar.value = true
+        _triggerContextualActionBar.tryEmit(R.string.add_plant to false)
     }
 
     fun onEnterAnimationEnd() {
-        _enterAnimationEndEvent.value = Event(Unit)
+        _enterAnimationEndEvent.tryEmit(Unit)
     }
 
     fun onCalendarImgClick() {
-        wateringPeriod.second.value = false
+        _wateringPeriodVisibility.value = false
     }
 
     fun onPickImageClick() {
-        if (isReadExternalStoragePermissionGranted) _pickImageEvent.value = Event(Unit)
-        else _checkIfReadExternalStoragePermissionWasAlreadyGiven.value = Event(Unit)
+        if (isReadExternalStoragePermissionGranted) _pickImageEvent.tryEmit(Unit)
+        else _checkIfReadExternalStoragePermissionWasAlreadyGiven.tryEmit(Unit)
     }
 
     fun onTakePhotoClick() {
         if (isReadExternalStoragePermissionGranted && isCameraPermissionGranted)
-            _takePhotoEvent.value = Event(Unit)
-        else _checkIfBothPermissionsWereAlreadyGiven.value = Event(Unit)
+            _takePhotoEvent.tryEmit(Unit)
+        else _checkIfBothPermissionsWereAlreadyGiven.tryEmit(Unit)
     }
 
     fun onWasReadExternalStoragePermissionWasAlreadyGivenResultArrival(wasGranted: Boolean) {
         isReadExternalStoragePermissionGranted = wasGranted
-        if (isReadExternalStoragePermissionGranted) _pickImageEvent.value = Event(Unit)
-        else _askForReadExternalStoragePermissionEvent.value = Event(readExternalStoragePermission)
+        if (isReadExternalStoragePermissionGranted) _pickImageEvent.tryEmit(Unit)
+        else _askForReadExternalStoragePermissionEvent.tryEmit(readExternalStoragePermission)
     }
 
     fun onWereBothPermissionsAlreadyGivenResultArrival(wereGranted: Pair<Boolean, Boolean>) {
@@ -144,27 +165,27 @@ class PlantViewModel : ViewModel() {
         isCameraPermissionGranted = wereGranted.second
 
         if (isReadExternalStoragePermissionGranted && isCameraPermissionGranted)
-            _takePhotoEvent.value = Event(Unit)
+            _takePhotoEvent.tryEmit(Unit)
         else if (!isReadExternalStoragePermissionGranted && !isCameraPermissionGranted)
-            _askForBothPermissionsEvent.value = Event(
-                    arrayOf(
-                            readExternalStoragePermission,
-                            cameraPermission
-                    )
+            _askForBothPermissionsEvent.tryEmit(
+                arrayOf(
+                    readExternalStoragePermission,
+                    cameraPermission
+                )
             )
         else if (isReadExternalStoragePermissionGranted && !isCameraPermissionGranted)
-            _askForCameraPermissionEvent.value = Event(cameraPermission)
+            _askForCameraPermissionEvent.tryEmit(cameraPermission)
     }
 
     fun onAskForReadExternalStoragePermissionResultArrival(isGranted: Boolean) {
         isReadExternalStoragePermissionGranted = isGranted
-        if (isReadExternalStoragePermissionGranted) _pickImageEvent.value = Event(Unit)
+        if (isReadExternalStoragePermissionGranted) _pickImageEvent.tryEmit(Unit)
         // TODO else show snackbar saying that permission was denied
     }
 
     fun onAskForCameraPermissionResultArrival(isGranted: Boolean) {
         isCameraPermissionGranted = isGranted
-        if (isCameraPermissionGranted) _takePhotoEvent.value = Event(Unit)
+        if (isCameraPermissionGranted) _takePhotoEvent.tryEmit(Unit)
         // TODO else show snackbar saying that permission was denied
     }
 
@@ -173,7 +194,7 @@ class PlantViewModel : ViewModel() {
         isCameraPermissionGranted = wereGranted[cameraPermission] ?: false
 
         if (isReadExternalStoragePermissionGranted && isCameraPermissionGranted)
-            _takePhotoEvent.value = Event(Unit)
+            _takePhotoEvent.tryEmit(Unit)
         // TODO else notify user which permission(s) was (were) denied
     }
 
@@ -181,29 +202,30 @@ class PlantViewModel : ViewModel() {
         uri?.let {
             if (this.realUriPath != realUriPath) {
                 rotationAngle = 0f // New image picked, reset rotationAngle
-                if (_plantImage.value != null) _removeCurrentImageEvent.value = true
-                _showImageLoadingProgressEvent.value = true
-                _requestPickedImageDependenciesEvent.value = Event(it)
+                if (_plantImage.value != null) _removeCurrentImageEvent.value = Unit
+                _showImageLoadingProgressEvent.tryEmit(true)
+                _requestPickedImageDependenciesEvent.tryEmit(Uri.fromFile(File(realUriPath!!)))
+
             }
         }
     }
 
     fun onTakeImageResultArrival(wasTaken: Boolean) {
-        if (wasTaken) _requestTakenPhotoDependenciesEvent.value = Event(Unit)
+        if (wasTaken) _requestTakenPhotoDependenciesEvent.tryEmit(Unit)
         // TODO else notify user of error while taking picture
     }
 
     private fun onPlantImageUriNotValidAnymore() {
-        _requestPickedImageDependenciesEvent.value = Event(null)
+        _requestPickedImageDependenciesEvent.tryEmit(null)
     }
 
     fun onEditTextReleaseFocus() {
-        wateringPeriod.second.value = true
+        _wateringPeriodVisibility.value = true
     }
 
     fun plantFragmentConstraintLayoutOnFocusChange(hasFocus: Boolean) {
-        if (hasFocus && wateringPeriod.second.value == false)
-            wateringPeriod.second.value = true
+        if (hasFocus && !_wateringPeriodVisibility.value)
+            _wateringPeriodVisibility.value = true
     }
 
     fun processPopupMenuItemId(@IdRes itemId: Int): Boolean {
@@ -218,7 +240,9 @@ class PlantViewModel : ViewModel() {
 
     fun onPlantImageLongClick(): Boolean {
         _plantImage.value?.run {
-            _showImageLoadingProgressEvent.value?.let { if (!it) _showPopupMenuEvent.value = Event(Unit) }
+            _showImageLoadingProgressEvent.value?.let {
+                if (!it) _showPopupMenuEvent.tryEmit(Unit)
+            }
         }
         return true
     }
@@ -226,9 +250,9 @@ class PlantViewModel : ViewModel() {
     private fun onBitmapLoaded(bitmap: Bitmap) {
         if (rotationAngle.hasToBeRotated) onPlantImageRotate(rotationAngle)
         else {
-            _showImageLoadingProgressEvent.value = false
+            _showImageLoadingProgressEvent.tryEmit(false)
             _removeCurrentImageEvent.value = null
-            _plantImage.value = bitmap
+            _plantImage.tryEmit(bitmap)
         }
     }
 
@@ -241,35 +265,31 @@ class PlantViewModel : ViewModel() {
     }
 
     private fun onPlantImageRotate(rotationAngle: Float) {
-        plantImage.value?.let {
+        _plantImage.value?.let {
             viewModelScope.launch {
                 this@PlantViewModel.rotationAngle += rotationAngle
-                _plantImage.value = rotateImage(it, rotationAngle)
+                _plantImage.tryEmit(rotateImage(it, rotationAngle))
             }
         }
     }
 
     fun onImageDependenciesProvided(
-            width: Int,
-            height: Int,
-            streams: Array<InputStream?>,
-            realUriPath: String?
+        width: Int,
+        height: Int,
+        streams: Array<InputStream?>,
+        realUriPath: String?
     ) {
         this.realUriPath = realUriPath
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 val bitmap = decodeSampledBitmapFromUri(
-                        streams,
-                        width,
-                        height,
-                        coroutineContext
+                    streams,
+                    width,
+                    height,
+                    coroutineContext + Dispatchers.IO
                 )
 
-                withContext(Dispatchers.Main) {
-                    onBitmapLoaded(
-                            bitmap ?: throw IllegalArgumentException("Bitmap cannot be null")
-                    )
-                }
+                onBitmapLoaded(bitmap ?: throw IllegalArgumentException("Bitmap cannot be null"))
             } catch (e: FileNotFoundException) {
                 // TODO inform user that the image was deleted
                 onPlantImageUriNotValidAnymore()
@@ -280,10 +300,10 @@ class PlantViewModel : ViewModel() {
     }
 
     private suspend fun decodeSampledBitmapFromUri(
-            streams: Array<InputStream?>,
-            reqWidth: Int,
-            reqHeight: Int,
-            context: CoroutineContext
+        streams: Array<InputStream?>,
+        reqWidth: Int,
+        reqHeight: Int,
+        context: CoroutineContext
     ) = withContext(context) {
         // First decode with inJustDecodeBounds=true to check dimensions
         BitmapFactory.Options().run {
@@ -301,10 +321,10 @@ class PlantViewModel : ViewModel() {
     }
 
     private suspend fun calculateInSampleSize(
-            options: BitmapFactory.Options,
-            reqWidth: Int,
-            reqHeight: Int,
-            context: CoroutineContext
+        options: BitmapFactory.Options,
+        reqWidth: Int,
+        reqHeight: Int,
+        context: CoroutineContext
     ) = withContext(context) {
         // Raw height and width of image
         val (height: Int, width: Int) = options.run { outHeight to outWidth }
@@ -328,6 +348,16 @@ class PlantViewModel : ViewModel() {
     private suspend fun rotateImage(image: Bitmap, angle: Float) = withContext(Dispatchers.IO) {
         val matrix = Matrix().apply { postRotate(angle) }
         Bitmap.createBitmap(image, 0, 0, image.width, image.height, matrix, true)
+    }
+
+    fun setWateringPeriodVisibility(visibility: Boolean) {
+        if ((visibility && !_wateringPeriodVisibility.value) || (!visibility && _wateringPeriodVisibility.value)) {
+            _wateringPeriodVisibility.value = visibility
+        }
+    }
+
+    fun setWateringPeriodText(text: String) {
+        if (text != _wateringPeriodText.value) _wateringPeriodText.value = text
     }
     //endregion
 }

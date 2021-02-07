@@ -6,16 +6,16 @@ import android.view.*
 import android.view.animation.Animation
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.LiveData
 import androidx.navigation.fragment.findNavController
 import ba.grbo.wateringplants.R
 import ba.grbo.wateringplants.databinding.FragmentPlantsBinding
 import ba.grbo.wateringplants.ui.activities.WateringPlantsActivity
 import ba.grbo.wateringplants.ui.viewmodels.PlantsViewModel
-import ba.grbo.wateringplants.util.Event
-import ba.grbo.wateringplants.util.observeEvent
+import ba.grbo.wateringplants.util.collect
 import ba.grbo.wateringplants.util.onCreateAnimation
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class PlantsFragment : Fragment() {
     //region Properties
     private val viewModel: PlantsViewModel by viewModels()
@@ -24,12 +24,12 @@ class PlantsFragment : Fragment() {
 
     //region Overriden methods
     override fun onCreateView(
-            inflater: LayoutInflater,
-            container: ViewGroup?,
-            savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View {
         setHasOptionsMenu(true)
-        viewModel.observeEvents()
+        viewModel.collectFlows()
         val binding = FragmentPlantsBinding.inflate(inflater, container, false)
 
         return binding.root
@@ -50,35 +50,39 @@ class PlantsFragment : Fragment() {
 
     override fun onCreateAnimation(transit: Int, enter: Boolean, nextAnim: Int): Animation? {
         return onCreateAnimation(
-                transit,
-                enter,
-                nextAnim,
-                requireContext(),
-                viewModel::onEnterAnimationStart,
-                viewModel::onEnterAnimationEnd,
+            transit,
+            enter,
+            nextAnim,
+            requireContext(),
+            viewModel::onEnterAnimationStart,
+            viewModel::onEnterAnimationEnd,
         ) { t, e, a -> super.onCreateAnimation(t, e, a) }
     }
     //endregion
 
     //region LiveData observers
-    private fun PlantsViewModel.observeEvents() {
-        observeEvent(addPlantEvent) { activity.onAddPlant() }
-        observeEvent(enterAnimationStartEvent) { this@PlantsFragment.onEnterAnimationStart() }
-        observeEvent(enterAnimationEndEvent) { activity.onEnterAnimationEnd() }
-    }
-
-    private fun <T> observeEvent(event: LiveData<Event<T>>, block: (T) -> Unit) {
-        observeEvent(event, viewLifecycleOwner, block)
+    private fun PlantsViewModel.collectFlows() {
+        collect(addPlantEvent) { onAddPlant() }
+        collect(enterAnimationStartEvent) {this@PlantsFragment.onEnterAnimationStart()}
+        collect(enterAnimationEndEvent) {this@PlantsFragment.onEnterAnimationEnd()}
     }
     //endregion
 
     //region Helper methods
+    private fun onAddPlant() {
+        activity.onAddPlant()
+    }
+
     private fun navigateToPlantFragment() {
         findNavController().navigate(PlantsFragmentDirections.actionPlantsFragmentToPlantFragment())
     }
 
     private fun onEnterAnimationStart() {
         disableViews()
+    }
+
+    private fun onEnterAnimationEnd() {
+        activity.onEnterAnimationEnd()
     }
 
     private fun WateringPlantsActivity.onAddPlant() {

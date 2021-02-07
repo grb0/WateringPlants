@@ -1,294 +1,272 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/plant_fragment_constraint_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:focusableInTouchMode="true"
+    tools:context=".ui.fragments.PlantFragment">
 
-    <data>
+    <ImageView
+        android:id="@+id/plant_img"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/missing_image"
+        android:contentDescription="@string/plant_img_content_description"
+        android:scaleType="fitXY"
+        app:layout_constraintBottom_toBottomOf="@id/h_guideline"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0" />
 
-        <import type="android.view.View" />
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/h_guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.50" />
 
-        <variable
-            name="viewModel"
-            type="ba.grbo.wateringplants.ui.viewmodels.PlantViewModel" />
-    </data>
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/plant_info_card"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        app:cardElevation="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/plant_img"
+        app:strokeColor="@color/stroke_color"
+        app:strokeWidth="1.5dp">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/plant_fragment_constraint_layout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:focusableInTouchMode="true"
-        tools:context=".ui.fragments.PlantFragment">
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/plant_info_layout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-        <ImageView
-            android:id="@+id/plant_img"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:background="@color/missing_image"
-            android:contentDescription="@string/plant_img_content_description"
-            android:scaleType="fitXY"
-            app:layout_constraintBottom_toBottomOf="@id/h_guideline"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.0" />
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/plant_name_layout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="65dp"
+                app:hintEnabled="false"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/h_guideline"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.50" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/plant_info_card"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="8dp"
-            app:cardElevation="0dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/plant_img"
-            app:strokeColor="@color/stroke_color"
-            app:strokeWidth="1.5dp">
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/plant_info_layout"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/plant_name_layout"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginEnd="65dp"
-                    app:hintEnabled="false"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/plant_name_edit_text"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@drawable/plant_name_background"
-                        android:fontFamily="@font/roboto"
-                        android:hint="@string/plant_name"
-                        android:inputType="textNoSuggestions"
-                        android:maxLength="16"
-                        android:maxLines="1"
-                        android:paddingStart="9dp"
-                        android:paddingTop="6dp"
-                        android:paddingEnd="9dp"
-                        android:paddingBottom="6dp"
-                        android:selectAllOnFocus="true"
-                        android:textSize="28sp" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/plant_description_layout"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:layout_marginBottom="8dp"
-                    app:hintEnabled="false"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="@+id/plant_name_layout"
-                    app:layout_constraintTop_toBottomOf="@+id/plant_name_layout">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/plant_description_edit_text"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@drawable/plant_name_background"
-                        android:fontFamily="@font/roboto"
-                        android:gravity="top"
-                        android:hint="@string/plant_description"
-                        android:inputType="textNoSuggestions|textMultiLine"
-                        android:lines="5"
-                        android:maxLength="200"
-                        android:paddingStart="9dp"
-                        android:paddingTop="6dp"
-                        android:paddingEnd="9dp"
-                        android:paddingBottom="6dp"
-                        android:selectAllOnFocus="true"
-                        android:textSize="18sp" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <ImageView
-                    android:id="@+id/calendar_img"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:contentDescription="@string/watering_period_img_content_description"
-                    android:onClick="@{_ -> viewModel.onCalendarImgClick()}"
-                    android:src="@drawable/ic_calendar"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:visibility="@={viewModel.wateringPeriod.second}" />
-
-                <ba.grbo.wateringplants.util.CustomTextInputLayout
-                    android:id="@+id/watering_period_layout"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="wrap_content"
-                    android:layout_height="0dp"
-                    android:layout_marginStart="22dp"
-                    android:layout_marginEnd="22dp"
-                    app:hintEnabled="false"
-                    app:layout_constraintBottom_toBottomOf="@+id/plant_name_layout"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@+id/plant_name_layout"
-                    app:layout_constraintTop_toTopOf="@+id/plant_name_layout"
-                    app:visibility="@={!viewModel.wateringPeriod.second}"
-                    tools:visibility="visible">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/watering_period_edit_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/plant_name_background"
-                        android:fontFamily="@font/roboto"
-                        android:inputType="number"
-                        android:maxLength="3"
-                        android:maxLines="1"
-                        android:paddingBottom="8dp"
-                        android:selectAllOnFocus="true"
-                        android:text="@={viewModel.wateringPeriod.first}"
-                        android:textSize="18sp"
-                        tools:text="2" />
-                </ba.grbo.wateringplants.util.CustomTextInputLayout>
-
-                <ba.grbo.wateringplants.util.CustomTextView
-                    android:id="@+id/calendar_text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/plant_name_edit_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/plant_name_background"
                     android:fontFamily="@font/roboto"
-                    android:text="@{viewModel.wateringPeriod.first}"
+                    android:hint="@string/plant_name"
+                    android:inputType="textNoSuggestions"
+                    android:maxLength="16"
+                    android:maxLines="1"
+                    android:paddingStart="9dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="9dp"
+                    android:paddingBottom="6dp"
+                    android:selectAllOnFocus="true"
+                    android:textSize="28sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/plant_description_layout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="8dp"
+                app:hintEnabled="false"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="@+id/plant_name_layout"
+                app:layout_constraintTop_toBottomOf="@+id/plant_name_layout">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/plant_description_edit_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/plant_name_background"
+                    android:fontFamily="@font/roboto"
+                    android:gravity="top"
+                    android:hint="@string/plant_description"
+                    android:inputType="textNoSuggestions|textMultiLine"
+                    android:lines="5"
+                    android:maxLength="200"
+                    android:paddingStart="9dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="9dp"
+                    android:paddingBottom="6dp"
+                    android:selectAllOnFocus="true"
+                    android:textSize="18sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <ba.grbo.wateringplants.util.CustomImageView
+                android:id="@+id/calendar_img"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="@string/watering_period_img_content_description"
+                android:src="@drawable/ic_calendar"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <ba.grbo.wateringplants.util.CustomTextInputLayout
+                android:id="@+id/watering_period_layout"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_marginStart="22dp"
+                android:layout_marginEnd="22dp"
+                app:hintEnabled="false"
+                app:layout_constraintBottom_toBottomOf="@+id/plant_name_layout"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/plant_name_layout"
+                app:layout_constraintTop_toTopOf="@+id/plant_name_layout"
+                tools:visibility="invisible">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/watering_period_edit_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/plant_name_background"
+                    android:fontFamily="@font/roboto"
+                    android:inputType="number"
+                    android:maxLength="3"
+                    android:maxLines="1"
+                    android:paddingBottom="8dp"
+                    android:selectAllOnFocus="true"
                     android:textSize="18sp"
-                    app:layout_constraintBottom_toBottomOf="@+id/calendar_img"
-                    app:layout_constraintEnd_toEndOf="@+id/calendar_img"
-                    app:layout_constraintStart_toStartOf="@+id/calendar_img"
-                    app:layout_constraintTop_toTopOf="@+id/calendar_img"
-                    app:visibility="@={viewModel.wateringPeriod.second}"
                     tools:text="2" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/v_guideline_1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.60" />
-
-        <Button
-            android:id="@+id/water_button"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_marginStart="4dp"
-            android:layout_marginTop="2dp"
-            android:layout_marginBottom="2dp"
-            android:text="@string/water_button"
-            app:icon="@drawable/ic_drop"
-            app:iconGravity="textStart"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="@+id/plant_info_card"
-            app:layout_constraintStart_toStartOf="@+id/v_guideline_1"
-            app:layout_constraintTop_toBottomOf="@+id/plant_info_card"
-            app:layout_constraintVertical_bias="1.0" />
-
-        <ImageView
-            android:id="@+id/take_photo_img"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:background="@drawable/img_ripple"
-            android:contentDescription="@string/take_photo_img_content_description"
-            android:onClick="@{() -> viewModel.onTakePhotoClick()}"
-            android:padding="8dp"
-            android:src="@drawable/ic_take_photo"
-            android:visibility="@{viewModel.isPlantImageAvailable ? View.GONE : View.VISIBLE}"
-            app:layout_constraintBottom_toTopOf="@+id/h_guideline"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.5"
-            app:layout_constraintStart_toEndOf="@+id/pick_image_img"
-            app:layout_constraintTop_toTopOf="@+id/plant_img" />
-
-        <ImageView
-            android:id="@+id/pick_image_img"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="16dp"
-            android:background="@drawable/img_ripple"
-            android:contentDescription="@string/pick_photo_img_content_description"
-            android:onClick="@{() -> viewModel.onPickImageClick()}"
-            android:padding="8dp"
-            android:src="@drawable/ic_pick_image"
-            android:visibility="@{viewModel.isPlantImageAvailable ? View.GONE : View.VISIBLE}"
-            app:layout_constraintBottom_toTopOf="@+id/h_guideline"
-            app:layout_constraintEnd_toStartOf="@+id/take_photo_img"
-            app:layout_constraintHorizontal_chainStyle="packed"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/plant_img" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/next_watering_card"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_marginTop="6dp"
-            android:layout_marginEnd="4dp"
-            android:layout_marginBottom="6dp"
-            app:cardElevation="0dp"
-            app:layout_constraintBottom_toBottomOf="@+id/water_button"
-            app:layout_constraintEnd_toStartOf="@+id/v_guideline_1"
-            app:layout_constraintStart_toStartOf="@+id/plant_info_card"
-            app:layout_constraintTop_toTopOf="@+id/water_button"
-            app:strokeColor="@color/stroke_color"
-            app:strokeWidth="1.5dp">
+            </ba.grbo.wateringplants.util.CustomTextInputLayout>
 
             <TextView
-                android:id="@+id/next_watering_text"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_margin="24dp"
+                android:id="@+id/calendar_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:fontFamily="@font/roboto"
-                android:gravity="center"
-                android:text="1d:15h:23m:15s"
-                android:textSize="20sp"
-                app:drawableTopCompat="@drawable/ic_watering_time"
-                tools:text="1d:15h:23m:15s" />
-        </com.google.android.material.card.MaterialCardView>
+                android:textSize="18sp"
+                app:layout_constraintBottom_toBottomOf="@+id/calendar_img"
+                app:layout_constraintEnd_toEndOf="@+id/calendar_img"
+                app:layout_constraintStart_toStartOf="@+id/calendar_img"
+                app:layout_constraintTop_toTopOf="@+id/calendar_img"
+                tools:text="2" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/v_guideline_1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.60" />
+
+    <Button
+        android:id="@+id/water_button"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="2dp"
+        android:text="@string/water_button"
+        app:icon="@drawable/ic_drop"
+        app:iconGravity="textStart"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/plant_info_card"
+        app:layout_constraintStart_toStartOf="@+id/v_guideline_1"
+        app:layout_constraintTop_toBottomOf="@+id/plant_info_card"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <ImageView
+        android:id="@+id/take_photo_img"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:background="@drawable/img_ripple"
+        android:contentDescription="@string/take_photo_img_content_description"
+        android:padding="8dp"
+        android:src="@drawable/ic_take_photo"
+        app:layout_constraintBottom_toTopOf="@+id/h_guideline"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/pick_image_img"
+        app:layout_constraintTop_toTopOf="@+id/plant_img" />
+
+    <ImageView
+        android:id="@+id/pick_image_img"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/img_ripple"
+        android:contentDescription="@string/pick_photo_img_content_description"
+        android:padding="8dp"
+        android:src="@drawable/ic_pick_image"
+        app:layout_constraintBottom_toTopOf="@+id/h_guideline"
+        app:layout_constraintEnd_toStartOf="@+id/take_photo_img"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/plant_img" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/next_watering_card"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginEnd="4dp"
+        android:layout_marginBottom="6dp"
+        app:cardElevation="0dp"
+        app:layout_constraintBottom_toBottomOf="@+id/water_button"
+        app:layout_constraintEnd_toStartOf="@+id/v_guideline_1"
+        app:layout_constraintStart_toStartOf="@+id/plant_info_card"
+        app:layout_constraintTop_toTopOf="@+id/water_button"
+        app:strokeColor="@color/stroke_color"
+        app:strokeWidth="1.5dp">
 
         <TextView
-            android:id="@+id/popup_anchor_txt"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:visibility="invisible"
-            app:layout_constraintBottom_toBottomOf="@+id/plant_img"
-            app:layout_constraintEnd_toEndOf="@+id/plant_img"
-            app:layout_constraintStart_toStartOf="@+id/plant_img"
-            app:layout_constraintTop_toTopOf="@+id/plant_img" />
+            android:id="@+id/next_watering_text"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="24dp"
+            android:fontFamily="@font/roboto"
+            android:gravity="center"
+            android:text="1d:15h:23m:15s"
+            android:textSize="20sp"
+            app:drawableTopCompat="@drawable/ic_watering_time"
+            tools:text="1d:15h:23m:15s" />
+    </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.progressindicator.CircularProgressIndicator
-            android:id="@+id/img_loading_progress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:indeterminate="true"
-            android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="@+id/plant_img"
-            app:layout_constraintEnd_toEndOf="@+id/plant_img"
-            app:layout_constraintStart_toStartOf="@+id/plant_img"
-            app:layout_constraintTop_toTopOf="@+id/plant_img" />
+    <TextView
+        android:id="@+id/popup_anchor_txt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="@+id/plant_img"
+        app:layout_constraintEnd_toEndOf="@+id/plant_img"
+        app:layout_constraintStart_toStartOf="@+id/plant_img"
+        app:layout_constraintTop_toTopOf="@+id/plant_img" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-</layout>
+    <com.google.android.material.progressindicator.CircularProgressIndicator
+        android:id="@+id/img_loading_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:indeterminate="true"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@+id/plant_img"
+        app:layout_constraintEnd_toEndOf="@+id/plant_img"
+        app:layout_constraintStart_toStartOf="@+id/plant_img"
+        app:layout_constraintTop_toTopOf="@+id/plant_img" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
