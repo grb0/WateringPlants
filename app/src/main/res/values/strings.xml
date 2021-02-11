@@ -32,6 +32,17 @@
     <string name="rotate_image_right">Rotate right</string>
     <string name="rotate_image_left">Rotate left</string>
 
+    <!--Snackbar messages-->
+    <string name="plant_name_empty">Nameless plant? Not gonna work…</string>
+    <string name="plant_description_empty">Descriptionless plant? Not gonna work…</string>
+    <string name="plant_image_path_empty">Imageless plant? Not gonna work…</string>
+    <string name="plant_complete_empty">Pure emptiness? Not gonna work…</string>
+    <string name="plant_name_and_description_empty">Nameless and descriptionless plant? Not gonna work…</string>
+    <string name="plant_name_and_image_path_empty">Nameless and imageless plant? Not gonna work…</string>
+    <string name="plant_description_and_image_path_empty">Descriptionless and imageless plant? Not gonna work…</string>
+    <string name="plant_successfully_inserted">Created successfully</string>
+    <string name="plant_img_failed_to_load">Image failed to load. Make sure the image is still available.</string>
+
     <!--Layout-->
     <string name="plant_img_content_description">A plant</string>
     <string name="next_watering_img_content_description">Three drops</string>
@@ -42,5 +53,6 @@
     <string name="plant_description">Enter plant description</string>
     <string name="pick_photo_img_content_description">A landscape</string>
     <string name="hourglass">An hourglass</string>
+    <string name="watering_period_default_value">1</string>
     <!--endregion-->
 </resources>

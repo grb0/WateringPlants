@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import ba.grbo.wateringplants.data.DatabasePlant
+import androidx.room.TypeConverters
+import ba.grbo.wateringplants.data.Plant
 
-@Database(entities = [DatabasePlant::class], version = 1)
+@Database(entities = [Plant::class], version = 1)
+@TypeConverters(Converter::class)
 abstract class PlantsDB : RoomDatabase() {
     abstract val plantDao: PlantDao
 

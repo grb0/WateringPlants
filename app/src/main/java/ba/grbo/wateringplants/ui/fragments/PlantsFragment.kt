@@ -1,25 +1,35 @@
 package ba.grbo.wateringplants.ui.fragments
 
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.*
 import android.view.animation.Animation
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.GridLayoutManager
 import ba.grbo.wateringplants.R
 import ba.grbo.wateringplants.databinding.FragmentPlantsBinding
 import ba.grbo.wateringplants.ui.activities.WateringPlantsActivity
+import ba.grbo.wateringplants.ui.adapters.PlantAdapter
 import ba.grbo.wateringplants.ui.viewmodels.PlantsViewModel
+import ba.grbo.wateringplants.util.GridSpacingItemDecoration
+import ba.grbo.wateringplants.util.VerticalGridSpacingItemDecoration
 import ba.grbo.wateringplants.util.collect
 import ba.grbo.wateringplants.util.onCreateAnimation
+import com.bumptech.glide.Glide
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class PlantsFragment : Fragment() {
     //region Properties
     private val viewModel: PlantsViewModel by viewModels()
     private lateinit var activity: WateringPlantsActivity
+    private lateinit var binding: FragmentPlantsBinding
     //endregion
 
     //region Overriden methods
@@ -30,7 +40,20 @@ class PlantsFragment : Fragment() {
     ): View {
         setHasOptionsMenu(true)
         viewModel.collectFlows()
-        val binding = FragmentPlantsBinding.inflate(inflater, container, false)
+        val adapter = PlantAdapter()
+        binding = FragmentPlantsBinding.inflate(inflater, container, false).apply {
+            plantsRecyclerView.addItemDecoration(
+                if (resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT)
+                    GridSpacingItemDecoration(
+                        (plantsRecyclerView.layoutManager as GridLayoutManager).spanCount,
+                        resources.getDimension(R.dimen.spacing_between_plant_cards).toInt(),
+                        true
+                    ) else VerticalGridSpacingItemDecoration(
+                    resources.getDimension(R.dimen.spacing_between_plant_cards).toInt(),
+                )
+            )
+            plantsRecyclerView.adapter = adapter
+        }
 
         return binding.root
     }
@@ -60,11 +83,17 @@ class PlantsFragment : Fragment() {
     }
     //endregion
 
-    //region LiveData observers
+    //region Flow collectors
     private fun PlantsViewModel.collectFlows() {
+        collect(plants) { (binding.plantsRecyclerView.adapter as PlantAdapter).submitList(it) }
         collect(addPlantEvent) { onAddPlant() }
-        collect(enterAnimationStartEvent) {this@PlantsFragment.onEnterAnimationStart()}
-        collect(enterAnimationEndEvent) {this@PlantsFragment.onEnterAnimationEnd()}
+        collect(removeGlideCacheEvent) {
+            lifecycleScope.launch(Dispatchers.Default) {
+                Glide.get(requireContext()).clearDiskCache()
+            }
+        }
+        collect(enterAnimationStartEvent) { this@PlantsFragment.onEnterAnimationStart() }
+        collect(enterAnimationEndEvent) { this@PlantsFragment.onEnterAnimationEnd() }
     }
     //endregion
 

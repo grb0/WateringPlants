@@ -23,6 +23,15 @@
             app:menu="@menu/app_bar_plants" />
     </com.google.android.material.appbar.AppBarLayout>
 
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/snackbar_coordinator_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:elevation="1dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/app_bar_layout" />
+
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/nav_host_fragment"
         android:name="androidx.navigation.fragment.NavHostFragment"

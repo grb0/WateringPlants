@@ -57,12 +57,13 @@ class WateringPlantsActivity : AppCompatActivity() {
     }
     //endregion
 
-    //region LiveData observers
+    //region Flow collectors
     private fun WateringPlantsViewModel.collectFlows() {
         collect(toFragmentEvent) { navigateToDestination(it) }
         collect(actionBarTitleId) {
             delay(1) // Delay so that our title does not get overriden by default
-            setMaterialToolbarTitle(it) }
+            setMaterialToolbarTitle(it)
+        }
     }
     //endregion
 
@@ -79,5 +80,7 @@ class WateringPlantsActivity : AppCompatActivity() {
     fun setBottomNavigationVisibility(visibility: Int) {
         binding.bottomNavigation.visibility = visibility
     }
+
+    fun getSnackbarCoordinatorLayout() = binding.snackbarCoordinatorLayout
     //endregion
 }

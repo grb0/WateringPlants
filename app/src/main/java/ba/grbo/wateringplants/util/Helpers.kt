@@ -13,11 +13,15 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.RecyclerView.ItemDecoration
 import ba.grbo.wateringplants.R
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -206,9 +210,6 @@ private fun isGooglePhotosUri(uri: Uri): Boolean {
     return "com.google.android.apps.photos.content" == uri.authority
 }
 
-val Float.hasToBeRotated: Boolean
-    get() = this != 0f
-
 val Boolean.toVisibility: Int
     get() = if (this) View.VISIBLE else View.GONE
 
@@ -245,4 +246,52 @@ fun <T> Fragment.collect(flow: Flow<T>, action: suspend (T) -> Unit) {
 
 fun <T> AppCompatActivity.collect(flow: Flow<T>, action: suspend (T) -> Unit) {
     flow.collect(lifecycleScope, action)
+}
+
+fun showSnackbar(view: View, @StringRes text: Int) {
+    Snackbar.make(view, text, Snackbar.LENGTH_SHORT).show()
+}
+
+class GridSpacingItemDecoration(
+    private val spanCount: Int,
+    private val spacing: Int,
+    private val includeEdge: Boolean
+) : ItemDecoration() {
+    override fun getItemOffsets(
+        outRect: Rect,
+        view: View,
+        parent: RecyclerView,
+        state: RecyclerView.State
+    ) {
+        val position = parent.getChildAdapterPosition(view)
+        val column = position % spanCount
+        if (includeEdge) {
+            outRect.left = spacing - column * spacing / spanCount
+            outRect.right = (column + 1) * spacing / spanCount
+            if (position < spanCount) outRect.top = spacing
+            outRect.bottom = spacing
+        } else {
+            outRect.left = column * spacing / spanCount
+            outRect.right = spacing - (column + 1) * spacing / spanCount
+            if (position >= spanCount) outRect.top = spacing
+        }
+    }
+}
+
+class VerticalGridSpacingItemDecoration(
+    private val spacing: Int,
+) : RecyclerView.ItemDecoration() {
+    override fun getItemOffsets(
+        outRect: Rect,
+        view: View,
+        parent: RecyclerView,
+        state: RecyclerView.State
+    ) {
+        val position = parent.getChildAdapterPosition(view) // item position
+
+        if (position == 0) outRect.left = spacing
+        outRect.top = spacing
+        outRect.bottom = spacing
+        outRect.right = spacing
+    }
 }

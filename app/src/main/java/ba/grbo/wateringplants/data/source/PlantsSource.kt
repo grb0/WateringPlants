@@ -1,11 +1,11 @@
 package ba.grbo.wateringplants.data.source
 
-import ba.grbo.wateringplants.data.DatabasePlant
+import ba.grbo.wateringplants.data.Plant
 import ba.grbo.wateringplants.data.Result
 import kotlinx.coroutines.flow.Flow
 
 interface PlantsSource {
-    suspend fun insertPlant(plant: DatabasePlant): Result<Unit>
+    suspend fun insertPlant(plant: Plant): Result<Unit>
 
-    fun getAllPlants(): Flow<Result<List<DatabasePlant>>>
+    fun getAllPlants(): Flow<Result<List<Plant>>>
 }

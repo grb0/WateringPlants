@@ -1,45 +1,37 @@
 package ba.grbo.wateringplants.ui.viewmodels
 
 import android.Manifest
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Matrix
-import android.net.Uri
 import androidx.annotation.IdRes
 import androidx.annotation.StringRes
-import androidx.lifecycle.*
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import ba.grbo.wateringplants.R
+import ba.grbo.wateringplants.data.Image
 import ba.grbo.wateringplants.data.Plant
 import ba.grbo.wateringplants.data.source.PlantsRepository
-import ba.grbo.wateringplants.util.*
+import ba.grbo.wateringplants.util.SharedStateLikeFlow
+import ba.grbo.wateringplants.util.SingleSharedFlow
+import ba.grbo.wateringplants.util.value
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.InputStream
 import javax.inject.Inject
-import kotlin.coroutines.CoroutineContext
 
 @HiltViewModel
 class PlantViewModel @Inject constructor(
     private val repository: PlantsRepository
 ) : ViewModel() {
     //region Properties
-    val plant = Plant(
-        MutableStateFlow("Forest oak"),
-        flowOf("Forest oaks are found in forests."),
-        flowOf("1"),
-    )
+    private var plant = Plant()
 
     private val readExternalStoragePermission = Manifest.permission.READ_EXTERNAL_STORAGE
     private val cameraPermission = Manifest.permission.CAMERA
     private var isReadExternalStoragePermissionGranted = false
     private var isCameraPermissionGranted = false
-    private var realUriPath: String? = null
     private var rotationAngle = 0f
         private set(value) {
             field = when (value) {
@@ -52,9 +44,6 @@ class PlantViewModel @Inject constructor(
     private val _triggerContextualActionBar = SharedStateLikeFlow<Pair<@StringRes Int, Boolean>>()
     val triggerContextualActionBar = _triggerContextualActionBar.distinctUntilChanged()
 
-    private val _plantImage = SharedStateLikeFlow<Bitmap>()
-    val plantImage = _plantImage.distinctUntilChanged()
-
     private val _showImageLoadingProgressEvent = SharedStateLikeFlow<Boolean>()
     val showImageLoadingProgressEvent = _showImageLoadingProgressEvent.distinctUntilChanged()
 
@@ -63,27 +52,9 @@ class PlantViewModel @Inject constructor(
         get() = _removeCurrentImageEvent
 
     // Single Events
-    private val _requestPickedImageDependenciesEvent = SingleSharedFlow<Uri?>()
-    val requestPickedImageDependenciesEvent: SharedFlow<Uri?>
-        get() = _requestPickedImageDependenciesEvent
-
-    private val _requestTakenPhotoDependenciesEvent = SingleSharedFlow<Unit>()
-    val requestTakenPhotoDependenciesEvent: SharedFlow<Unit>
-        get() = _requestTakenPhotoDependenciesEvent
-
     private val _showPickImageTakePhoto = MutableStateFlow(true)
     val showPickImageTakePhoto: StateFlow<Boolean>
         get() = _showPickImageTakePhoto
-
-    init {
-        _requestPickedImageDependenciesEvent
-            .onEach { _showPickImageTakePhoto.value = it == null }
-            .launchIn(viewModelScope)
-
-        _requestTakenPhotoDependenciesEvent
-            .onEach { _showPickImageTakePhoto.value = it != Unit }
-            .launchIn(viewModelScope)
-    }
 
     private val _checkIfReadExternalStoragePermissionWasAlreadyGiven = SingleSharedFlow<Unit>()
     val checkIfReadExternalStoragePermissionWasAlreadyGiven: SharedFlow<Unit>
@@ -125,9 +96,33 @@ class PlantViewModel @Inject constructor(
     val wateringPeriodVisibility: StateFlow<Boolean>
         get() = _wateringPeriodVisibility
 
-    private val _wateringPeriodText = MutableStateFlow("1")
-    val wateringPeriodText: StateFlow<String>
-        get() = _wateringPeriodText
+    val plantName: StateFlow<String>
+        get() = plant._name
+
+    val plantDescription: StateFlow<String>
+        get() = plant._description
+
+    val plantWateringPeriod: StateFlow<String>
+        get() = plant._wateringPeriod
+
+    val plantImage: StateFlow<Image>
+        get() = plant._image
+
+    private val _showSnackBar = SingleSharedFlow<@StringRes Int>()
+    val showSnackbar: SharedFlow<Int>
+        get() = _showSnackBar
+
+    private val _backToPlantsFragment = SingleSharedFlow<Unit>()
+    val backToPlantsFragment: SharedFlow<Unit>
+        get() = _backToPlantsFragment
+    //endregion
+
+    // region Static values
+    companion object {
+        private const val rotateRight = 90f
+        private const val rotateLeft = -90f
+
+    }
     //endregion
 
     //region Helper methods
@@ -149,9 +144,9 @@ class PlantViewModel @Inject constructor(
     }
 
     fun onTakePhotoClick() {
-        if (isReadExternalStoragePermissionGranted && isCameraPermissionGranted)
+        if (isReadExternalStoragePermissionGranted && isCameraPermissionGranted) {
             _takePhotoEvent.tryEmit(Unit)
-        else _checkIfBothPermissionsWereAlreadyGiven.tryEmit(Unit)
+        } else _checkIfBothPermissionsWereAlreadyGiven.tryEmit(Unit)
     }
 
     fun onWasReadExternalStoragePermissionWasAlreadyGivenResultArrival(wasGranted: Boolean) {
@@ -168,10 +163,7 @@ class PlantViewModel @Inject constructor(
             _takePhotoEvent.tryEmit(Unit)
         else if (!isReadExternalStoragePermissionGranted && !isCameraPermissionGranted)
             _askForBothPermissionsEvent.tryEmit(
-                arrayOf(
-                    readExternalStoragePermission,
-                    cameraPermission
-                )
+                arrayOf(readExternalStoragePermission, cameraPermission)
             )
         else if (isReadExternalStoragePermissionGranted && !isCameraPermissionGranted)
             _askForCameraPermissionEvent.tryEmit(cameraPermission)
@@ -198,25 +190,22 @@ class PlantViewModel @Inject constructor(
         // TODO else notify user which permission(s) was (were) denied
     }
 
-    fun onImageUriArrival(uri: Uri?, realUriPath: String?) {
-        uri?.let {
-            if (this.realUriPath != realUriPath) {
+    fun onImagePathProvided(pickedImagePath: String?) {
+        pickedImagePath?.let {
+            if (pickedImagePath != plant.image.path) {
                 rotationAngle = 0f // New image picked, reset rotationAngle
-                if (_plantImage.value != null) _removeCurrentImageEvent.value = Unit
-                _showImageLoadingProgressEvent.tryEmit(true)
-                _requestPickedImageDependenciesEvent.tryEmit(Uri.fromFile(File(realUriPath!!)))
-
+                if (plant.image.path.isNotEmpty()) _removeCurrentImageEvent.value = Unit
+                _showPickImageTakePhoto.tryEmit(false)
+                plant.image = plant.image.copy(path = pickedImagePath)
             }
         }
     }
 
-    fun onTakeImageResultArrival(wasTaken: Boolean) {
-        if (wasTaken) _requestTakenPhotoDependenciesEvent.tryEmit(Unit)
-        // TODO else notify user of error while taking picture
-    }
-
-    private fun onPlantImageUriNotValidAnymore() {
-        _requestPickedImageDependenciesEvent.tryEmit(null)
+    fun onTakeImageResultArrival(wasTaken: Boolean, takenPhotoPath: String?) {
+        takenPhotoPath?.let {
+            if (wasTaken) onImagePathProvided(takenPhotoPath)
+            // TODO else notify user of error while taking picture
+        }
     }
 
     fun onEditTextReleaseFocus() {
@@ -239,115 +228,23 @@ class PlantViewModel @Inject constructor(
     }
 
     fun onPlantImageLongClick(): Boolean {
-        _plantImage.value?.run {
-            _showImageLoadingProgressEvent.value?.let {
-                if (!it) _showPopupMenuEvent.tryEmit(Unit)
-            }
+        if (!isPlantImagePathEmpty()) {
+            _showImageLoadingProgressEvent.value?.let { if (!it) _showPopupMenuEvent.tryEmit(Unit) }
         }
         return true
     }
 
-    private fun onBitmapLoaded(bitmap: Bitmap) {
-        if (rotationAngle.hasToBeRotated) onPlantImageRotate(rotationAngle)
-        else {
-            _showImageLoadingProgressEvent.tryEmit(false)
-            _removeCurrentImageEvent.value = null
-            _plantImage.tryEmit(bitmap)
-        }
+    private fun onRotateImageClick(rotationAngle: Float) {
+        val totalRotationAngle = plant.image.rotationAngle + rotationAngle
+        plant.image = plant.image.copy(rotationAngle = totalRotationAngle)
     }
 
     private fun onRotateImageRightClick() {
-        onPlantImageRotate(90f)
+        onRotateImageClick(rotateRight)
     }
 
     private fun onRotateImageLeftClick() {
-        onPlantImageRotate(-90f)
-    }
-
-    private fun onPlantImageRotate(rotationAngle: Float) {
-        _plantImage.value?.let {
-            viewModelScope.launch {
-                this@PlantViewModel.rotationAngle += rotationAngle
-                _plantImage.tryEmit(rotateImage(it, rotationAngle))
-            }
-        }
-    }
-
-    fun onImageDependenciesProvided(
-        width: Int,
-        height: Int,
-        streams: Array<InputStream?>,
-        realUriPath: String?
-    ) {
-        this.realUriPath = realUriPath
-        viewModelScope.launch {
-            try {
-                val bitmap = decodeSampledBitmapFromUri(
-                    streams,
-                    width,
-                    height,
-                    coroutineContext + Dispatchers.IO
-                )
-
-                onBitmapLoaded(bitmap ?: throw IllegalArgumentException("Bitmap cannot be null"))
-            } catch (e: FileNotFoundException) {
-                // TODO inform user that the image was deleted
-                onPlantImageUriNotValidAnymore()
-            } catch (e: IllegalArgumentException) {
-                // TODO inform user that the image couldn't be loaded
-            }
-        }
-    }
-
-    private suspend fun decodeSampledBitmapFromUri(
-        streams: Array<InputStream?>,
-        reqWidth: Int,
-        reqHeight: Int,
-        context: CoroutineContext
-    ) = withContext(context) {
-        // First decode with inJustDecodeBounds=true to check dimensions
-        BitmapFactory.Options().run {
-            inJustDecodeBounds = true
-            if (isActive) BitmapFactory.decodeStream(streams[0], null, this)
-
-            // Calculate inSampleSize
-            inSampleSize = calculateInSampleSize(this, reqWidth, reqHeight, coroutineContext)
-
-            // Decode bitmap with inSampleSize set
-            inJustDecodeBounds = false
-
-            BitmapFactory.decodeStream(streams[1], null, this)
-        }
-    }
-
-    private suspend fun calculateInSampleSize(
-        options: BitmapFactory.Options,
-        reqWidth: Int,
-        reqHeight: Int,
-        context: CoroutineContext
-    ) = withContext(context) {
-        // Raw height and width of image
-        val (height: Int, width: Int) = options.run { outHeight to outWidth }
-        var inSampleSize = 1
-
-        if (height > reqHeight || width > reqWidth) {
-
-            val halfHeight: Int = height / 2
-            val halfWidth: Int = width / 2
-
-            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
-            // height and width larger than the requested height and width.
-            while (isActive && halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
-                inSampleSize *= 2
-            }
-        }
-
-        inSampleSize
-    }
-
-    private suspend fun rotateImage(image: Bitmap, angle: Float) = withContext(Dispatchers.IO) {
-        val matrix = Matrix().apply { postRotate(angle) }
-        Bitmap.createBitmap(image, 0, 0, image.width, image.height, matrix, true)
+        onRotateImageClick(rotateLeft)
     }
 
     fun setWateringPeriodVisibility(visibility: Boolean) {
@@ -356,8 +253,112 @@ class PlantViewModel @Inject constructor(
         }
     }
 
-    fun setWateringPeriodText(text: String) {
-        if (text != _wateringPeriodText.value) _wateringPeriodText.value = text
+    fun setPlantName(text: String) {
+        if (text != plant.name) plant.name = text
+    }
+
+    fun setPlantDescription(text: String) {
+        if (text != plant.description) plant.description = text
+    }
+
+    fun setWateringPeriod(text: String) {
+        if (text != plant.wateringPeriod) plant.wateringPeriod = text
+    }
+
+    fun onCreatePlantClicked(): Boolean {
+        if (shouldSavePlant()) viewModelScope.launch(Dispatchers.IO) {
+            repository.insertPlant(plant)
+            notifyUserOfSuccessfulInsert()
+            goBackToPlantsFragment()
+        } else notifyUserOfIncompletePlant()
+        return true
+    }
+
+    private fun isPlantNameEmpty() = plant.name.isEmpty()
+    private fun isPlantDescriptionEmpty() = plant.description.isEmpty()
+    private fun isPlantImagePathEmpty() = plant.image.path.isEmpty()
+
+    private fun shouldSavePlant(): Boolean {
+        return !isPlantNameEmpty() && !isPlantDescriptionEmpty() && !isPlantImagePathEmpty()
+    }
+
+    private fun notifyUserOfIncompletePlant() {
+        val isPlantNameEmpty = isPlantNameEmpty()
+        val isPlantDescriptionEmpty = isPlantDescriptionEmpty()
+        val isPlantImagePathEmpty = isPlantImagePathEmpty()
+
+        when {
+            isPlantNameEmpty && !isPlantDescriptionEmpty && !isPlantImagePathEmpty -> {
+                notifyUserOfEmptyPlantName()
+            }
+            isPlantNameEmpty && isPlantDescriptionEmpty && !isPlantImagePathEmpty -> {
+                notifyUserOfEmptyPlantNameAndDescription()
+            }
+            isPlantNameEmpty && !isPlantDescriptionEmpty && isPlantImagePathEmpty -> {
+                notifyUserOfEmptyePlantNameAndImagePath()
+            }
+            !isPlantNameEmpty && isPlantDescriptionEmpty && !isPlantImagePathEmpty -> {
+                notifyUserOfEmptyPlantDescription()
+            }
+            !isPlantNameEmpty && isPlantDescriptionEmpty && isPlantImagePathEmpty -> {
+                notifyUserOfEmptyPlantDescriptionAndImagePath()
+            }
+            !isPlantNameEmpty && !isPlantDescriptionEmpty && isPlantImagePathEmpty -> {
+                notifyUserOfEmptyPlantImagePath()
+            }
+            isPlantNameEmpty && isPlantDescriptionEmpty && isPlantImagePathEmpty -> {
+                notifyUserOfCompleteEmptiness()
+            }
+        }
+    }
+
+    private fun notifyUserOfEmptyPlantName() {
+        _showSnackBar.tryEmit(R.string.plant_name_empty)
+    }
+
+    private fun notifyUserOfEmptyPlantNameAndDescription() {
+        _showSnackBar.tryEmit(R.string.plant_name_and_description_empty)
+    }
+
+    private fun notifyUserOfEmptyePlantNameAndImagePath() {
+        _showSnackBar.tryEmit(R.string.plant_name_and_image_path_empty)
+    }
+
+    private fun notifyUserOfEmptyPlantDescription() {
+        _showSnackBar.tryEmit(R.string.plant_description_empty)
+    }
+
+    private fun notifyUserOfEmptyPlantDescriptionAndImagePath() {
+        _showSnackBar.tryEmit(R.string.plant_description_and_image_path_empty)
+    }
+
+    private fun notifyUserOfEmptyPlantImagePath() {
+        _showSnackBar.tryEmit(R.string.plant_image_path_empty)
+    }
+
+    private fun notifyUserOfCompleteEmptiness() {
+        _showSnackBar.tryEmit(R.string.plant_complete_empty)
+    }
+
+    private fun notifyUserOfSuccessfulInsert() {
+        _showSnackBar.tryEmit(R.string.plant_successfully_inserted)
+    }
+
+    private fun goBackToPlantsFragment() {
+        _backToPlantsFragment.tryEmit(Unit)
+    }
+
+    fun onImageFailedToLoad() {
+        _showImageLoadingProgressEvent.tryEmit(false)
+        _showSnackBar.tryEmit(R.string.plant_img_failed_to_load)
+    }
+
+    fun onImageLoadedSuccessfully() {
+        _showImageLoadingProgressEvent.tryEmit(false)
+    }
+
+    fun showImageLoadingProgressEvent() {
+        _showImageLoadingProgressEvent.tryEmit(true)
     }
     //endregion
 }

@@ -5,7 +5,7 @@ import android.content.ActivityNotFoundException
 import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.InsetDrawable
 import android.net.Uri
 import android.os.Bundle
@@ -20,16 +20,22 @@ import androidx.appcompat.view.ActionMode
 import androidx.appcompat.view.menu.MenuBuilder
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
-import androidx.core.view.doOnLayout
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import ba.grbo.wateringplants.R
+import ba.grbo.wateringplants.data.Image
 import ba.grbo.wateringplants.databinding.FragmentPlantBinding
 import ba.grbo.wateringplants.ui.activities.WateringPlantsActivity
 import ba.grbo.wateringplants.ui.viewmodels.PlantViewModel
 import ba.grbo.wateringplants.util.*
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
+import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -39,9 +45,11 @@ import java.util.*
 @AndroidEntryPoint
 class PlantFragment : Fragment() {
     //region Properties
+    @Suppress("PrivatePropertyName")
+    private val TAKEN_PHOTO_PATH = "TAKEN_PHOTO_PATH"
     private val imageMimeType = "image/*"
-    private val _takenPhotoUri = "TAKEN_PHOTO_URI"
     private val plantViewModel: PlantViewModel by viewModels()
+    private var actionMode: ActionMode? = null
 
     private val requestReadExternalStoragePermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -56,18 +64,17 @@ class PlantFragment : Fragment() {
     ) { plantViewModel.onAskForBothPermissionsResultArival(it) }
 
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) {
-        it?.let {
-            realUriPath = it.getRealPathFromUriAPI19(requireContext())
-            plantViewModel.onImageUriArrival(it, realUriPath)
-        }
+        it?.let { plantViewModel.onImagePathProvided(it.getRealPathFromUriAPI19(requireContext())) }
     }
 
     private val takePhoto = registerForActivityResult(ActivityResultContracts.TakePicture()) {
-        plantViewModel.onTakeImageResultArrival(it)
+        plantViewModel.onTakeImageResultArrival(
+            it,
+            takenPhotoPath
+        )
     }
 
-    private var realUriPath: String? = null
-    private var takenPhotoUri: Uri? = null
+    private var takenPhotoPath = ""
 
     private lateinit var activity: WateringPlantsActivity
     private lateinit var imm: InputMethodManager
@@ -81,7 +88,7 @@ class PlantFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        savedInstanceState?.run { takenPhotoUri = getParcelable(_takenPhotoUri) }
+        savedInstanceState?.run { takenPhotoPath = getString(TAKEN_PHOTO_PATH)!! }
         plantViewModel.collectFlows()
         binding = FragmentPlantBinding.inflate(inflater, container, false).apply {
             plantFragmentConstraintLayout.setOnFocusChangeListener { _, hasFocus ->
@@ -145,7 +152,15 @@ class PlantFragment : Fragment() {
             }
 
             wateringPeriodEditText.addTextChangedListener {
-                plantViewModel.setWateringPeriodText(it.toString())
+                plantViewModel.setWateringPeriod(it.toString())
+            }
+
+            plantNameEditText.addTextChangedListener {
+                plantViewModel.setPlantName(it.toString())
+            }
+
+            plantDescriptionEditText.addTextChangedListener {
+                plantViewModel.setPlantDescription(it.toString())
             }
         }
 
@@ -154,7 +169,7 @@ class PlantFragment : Fragment() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putParcelable(_takenPhotoUri, takenPhotoUri)
+        outState.putString(TAKEN_PHOTO_PATH, takenPhotoPath)
     }
 
     override fun onAttach(context: Context) {
@@ -175,18 +190,14 @@ class PlantFragment : Fragment() {
     }
     //endregion
 
-    //region LiveData observers
+    //region Flow collectors
     private fun PlantViewModel.collectFlows() {
         collect(triggerContextualActionBar) {
             triggerContextualActionBar(it.first, it.second.toVisibility)
         }
-        collect(plantImage) {setBitmapToImageView(it)}
-        collect(showImageLoadingProgressEvent) { showImageLoadingProgress(it.toVisibility) }
+        collect(plantImage) { if (it.path.isNotEmpty()) loadAndSetPickedImage(it) }
+        collect(showImageLoadingProgressEvent) { setImageLoadingProgressVisibility(it.toVisibility) }
         collect(removeCurrentImageEvent) { it?.run { removeCurrentImage() } }
-        collect(requestPickedImageDependenciesEvent) {
-            it?.also { providePickedImageDependencies(it) }
-        }
-        collect(requestTakenPhotoDependenciesEvent) { provideTakenPhotoDependencies() }
         collect(showPickImageTakePhoto) { setPickImageTakePhotoVisibility(it.toVisibility) }
         collect(checkIfReadExternalStoragePermissionWasAlreadyGiven) {
             wasReadExternalStoragePermissionAlreadyGranted()
@@ -202,15 +213,31 @@ class PlantFragment : Fragment() {
         collect(takePhotoEvent) { takePhoto() }
         collect(enterAnimationEndEvent) { this@PlantFragment.onEnterAnimationEnd() }
         collect(wateringPeriodVisibility) { setViewsVisibilities(it) }
-        collect(wateringPeriodText) { setViewsTexts(it) }
+        collect(plantName) { setEditText(binding.plantNameEditText, it) }
+        collect(plantDescription) { setEditText(binding.plantDescriptionEditText, it) }
+        collect(plantWateringPeriod) {
+            setEditText(binding.wateringPeriodEditText, it)
+            setCalendarText(it)
+        }
+        collect(showSnackbar) { showSnackbar(it) }
+        collect(backToPlantsFragment) { actionMode?.finish() }
     }
     //endregion
 
     //region Helper methods
-    private fun setViewsTexts(text: String) {
+    private fun showSnackbar(@StringRes text: Int) {
+        showSnackbar(activity.getSnackbarCoordinatorLayout(), text)
+    }
+
+    private fun setEditText(view: TextInputEditText, text: String) {
+        if (view.text.toString() != text) {
+            view.setText(text)
+            view.setSelection(text.length)
+        }
+    }
+
+    private fun setCalendarText(text: String) {
         binding.calendarText.text = text
-        binding.wateringPeriodEditText.setText(text)
-        binding.wateringPeriodEditText.setSelection(text.length)
     }
 
     private fun setViewsVisibilities(visibility: Boolean) {
@@ -229,7 +256,7 @@ class PlantFragment : Fragment() {
         popupMenu.show()
     }
 
-    private fun showImageLoadingProgress(visibility: Int) {
+    private fun setImageLoadingProgressVisibility(visibility: Int) {
         binding.imgLoadingProgress.visibility = visibility
     }
 
@@ -237,32 +264,41 @@ class PlantFragment : Fragment() {
         activity.triggerContextualActionBar(actionBarTitle, visibility)
     }
 
-    private fun setBitmapToImageView(image: Bitmap) {
-        binding.plantImg.setImageBitmap(image)
+    private fun loadAndSetPickedImage(image: Image) {
+        plantViewModel.showImageLoadingProgressEvent()
+        Glide.with(requireContext())
+            .load(image.path)
+            .transform(RotationTransformation(image.rotationAngle))
+            .listener(provideRequestListener())
+            .into(binding.plantImg)
+    }
+
+    private fun provideRequestListener() = object : RequestListener<Drawable?> {
+        override fun onLoadFailed(
+            e: GlideException?,
+            model: Any?,
+            target: Target<Drawable?>?,
+            isFirstResource: Boolean
+        ): Boolean {
+            plantViewModel.onImageFailedToLoad()
+            return false
+        }
+
+        override fun onResourceReady(
+            resource: Drawable?,
+            model: Any?,
+            target: Target<Drawable?>?,
+            dataSource: DataSource?,
+            isFirstResource: Boolean
+        ): Boolean {
+            plantViewModel.onImageLoadedSuccessfully()
+            return false
+        }
     }
 
     private fun removeCurrentImage() {
         binding.plantImg.setImageDrawable(null)
     }
-
-    private fun providePickedImageDependencies(uri: Uri, realUriPath: String? = this.realUriPath) {
-        binding.plantImg.doOnLayout {
-            plantViewModel.onImageDependenciesProvided(
-                it.width,
-                it.height,
-                arrayOf(openInputStream(uri), openInputStream(uri)),
-                realUriPath
-            )
-        }
-    }
-
-    private fun provideTakenPhotoDependencies() {
-        takenPhotoUri?.let {
-            providePickedImageDependencies(it, it.getRealPathFromUriAPI19(requireContext()))
-        }
-    }
-
-    private fun openInputStream(uri: Uri) = activity.contentResolver.openInputStream(uri)
 
     private fun pickImage() {
         try {
@@ -277,10 +313,12 @@ class PlantFragment : Fragment() {
             takePhoto.launch(getPhotoUri())
         } catch (e: ActivityNotFoundException) {
             // TODO notify viewmodel, which will request notification of user
+        } catch (e: NullPointerException) {
+            // TODO notify that uri is null
         }
     }
 
-    private fun getPhotoUri(): Uri? {
+    private fun getPhotoUri(): Uri {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         val title = "JPG_${timeStamp}_.jpg"
         val mimeType = "image/jpg"
@@ -290,10 +328,12 @@ class PlantFragment : Fragment() {
             put(MediaStore.Images.Media.MIME_TYPE, mimeType)
         }
 
-        takenPhotoUri = activity.contentResolver.insert(
+        val takenPhotoUri = activity.contentResolver.insert(
             MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
             values
-        )
+        )!!
+
+        takenPhotoPath = takenPhotoUri.getRealPathFromUriAPI19(requireContext())!!
 
         return takenPhotoUri
     }
@@ -395,8 +435,8 @@ class PlantFragment : Fragment() {
 
     private fun processClickedActionItem(mode: ActionMode?, item: MenuItem?) = when (item?.itemId) {
         R.id.create -> {
-            mode?.finish()
-            true
+            actionMode = mode
+            plantViewModel.onCreatePlantClicked()
         }
         else -> false
     }

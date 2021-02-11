@@ -1,6 +1,6 @@
 package ba.grbo.wateringplants.data.source.local
 
-import ba.grbo.wateringplants.data.DatabasePlant
+import ba.grbo.wateringplants.data.Plant
 import ba.grbo.wateringplants.data.Result
 import ba.grbo.wateringplants.data.Result.Error
 import ba.grbo.wateringplants.data.Result.Success
@@ -16,7 +16,7 @@ import javax.inject.Inject
 class LocalPlantsSource @Inject constructor(
     private val plantDao: PlantDao,
 ) : PlantsSource {
-    override suspend fun insertPlant(plant: DatabasePlant): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun insertPlant(plant: Plant): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             plantDao.insert(plant)
             Success(Unit)
@@ -25,7 +25,7 @@ class LocalPlantsSource @Inject constructor(
         }
     }
 
-    override fun getAllPlants(): Flow<Result<List<DatabasePlant>>> = try {
+    override fun getAllPlants(): Flow<Result<List<Plant>>> = try {
         plantDao.plantsStream().map { Success(it) }.flowOn(Dispatchers.Default)
     } catch (e: Exception) {
         flow { emit(Error(e)) }
