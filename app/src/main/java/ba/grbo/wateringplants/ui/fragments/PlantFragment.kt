@@ -10,7 +10,6 @@ import android.graphics.drawable.InsetDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
-import android.util.Log
 import android.util.TypedValue
 import android.view.*
 import android.view.animation.Animation
@@ -38,6 +37,7 @@ import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
@@ -217,6 +217,7 @@ class PlantFragment : Fragment() {
             setImageLoadingProgressVisibility(it.toVisibility)
         }
         collect(removeCurrentImageEvent) { it?.run { removeCurrentImage() } }
+        collect(confirmReverseEvent) { if (it) confirmChangesReversal() }
         collect(showPickImageTakePhoto) { setPickImageTakePhotoVisibility(it.toVisibility) }
         collect(checkIfReadExternalStoragePermissionWasAlreadyGiven) {
             wasReadExternalStoragePermissionAlreadyGranted()
@@ -442,6 +443,18 @@ class PlantFragment : Fragment() {
         actionMode?.menuInflater?.inflate(menuLayout, actionMode?.menu)
     }
 
+    private fun startActionModeCloseButtonAnimation(@DrawableRes closeButtonDrawableId: Int) {
+        actionModeCloseButton.startAnimation(getFadeOutRepeatAnimation {
+            actionModeCloseButton.setImageResource(closeButtonDrawableId)
+        })
+    }
+
+    private fun startActionModeTitleAnimation(title: CharSequence) {
+        actionModeTitle.startAnimation(getFadeOutRepeatAnimation {
+            actionModeTitle.text = title
+        })
+    }
+
     private fun setContextualActionBarAnimations(
         @DrawableRes closeButtonDrawableId: Int,
         title: CharSequence,
@@ -451,55 +464,26 @@ class PlantFragment : Fragment() {
         menuItem?.setActionView(R.layout.action_bar_update)
         menuItem?.actionView?.startAnimation(menuItemAnimation(menuItem))
 
-        if (::actionModeCloseButton.isInitialized) {
-            actionModeCloseButton.startAnimation(getFadeOutRepeatAnimation {
-                actionModeCloseButton.setImageResource(closeButtonDrawableId)
-            })
-        } else {
+        if (::actionModeCloseButton.isInitialized)
+            startActionModeCloseButtonAnimation(closeButtonDrawableId)
+        else {
             actionModeCloseButton = activity.findViewById(R.id.action_mode_close_button)
-            actionModeCloseButton.startAnimation(getFadeOutRepeatAnimation {
-                actionModeCloseButton.setImageResource(closeButtonDrawableId)
-            })
+            startActionModeCloseButtonAnimation(closeButtonDrawableId)
         }
 
-        if (::actionModeTitle.isInitialized) {
-            actionModeTitle.startAnimation(getFadeOutRepeatAnimation {
-                actionModeTitle.text = title
-            })
-        } else {
+        if (::actionModeTitle.isInitialized) startActionModeTitleAnimation(title)
+        else {
             actionModeTitle = activity.findViewById(R.id.action_bar_title)
-            actionModeTitle.startAnimation(getFadeOutRepeatAnimation {
-                actionModeTitle.text = title
-            })
+            startActionModeTitleAnimation(title)
         }
     }
 
     private fun adjustToEditingContextualActionBar() {
-        Log.i("MainActivity", "adjusttoedit")
         clearAndInflateMenu(R.menu.app_bar_plant_editing)
         setContextualActionBarAnimations(
             R.drawable.ic_close,
             getText(R.string.edit_plant)
         ) { getFadeInAnimation { it.actionView = null } }
-
-//        actionMode?.menu?.clear()
-//        actionMode?.menuInflater?.inflate(R.menu.app_bar_plant_editing, actionMode?.menu)
-//
-//        val menuItem = actionMode?.menu?.findItem(R.id.update)
-//        menuItem?.setActionView(R.layout.action_bar_update)
-//        menuItem?.actionView?.startAnimation(getFadeInAnimation { menuItem.actionView = null })
-//
-//        activity.findViewById<AppCompatImageView>(R.id.action_mode_close_button).apply {
-//            startAnimation(getFadeOutRepeatAnimation {
-//                setImageResource(R.drawable.ic_close)
-//            })
-//        }
-//
-//        activity.findViewById<AppCompatTextView>(R.id.action_bar_title).apply {
-//            startAnimation(getFadeOutRepeatAnimation {
-//                text = getText(R.string.edit_plant)
-//            })
-//        }
     }
 
     private fun adjustToViewingContextualActionbar(plantName: String) {
@@ -514,30 +498,6 @@ class PlantFragment : Fragment() {
             delay(resources.getInteger(R.integer.shortAnimTime).toLong())
             clearAndInflateMenu(R.menu.app_bar_plant_viewing)
         }
-
-//        val menuItem = actionMode?.menu?.findItem(R.id.update)
-//        menuItem?.setActionView(R.layout.action_bar_update)
-//        menuItem?.actionView?.startAnimation(getFadeOutAnimation { menuItem.actionView = null })
-//
-//        activity.findViewById<AppCompatImageView>(R.id.action_mode_close_button).apply {
-//            startAnimation(getFadeOutRepeatAnimation {
-//                setImageResource(retrieveResourceId())
-//            })
-//        }
-//
-//        activity.findViewById<AppCompatTextView>(R.id.action_bar_title).apply {
-//            startAnimation(getFadeOutRepeatAnimation {
-//                text = plantName
-//            })
-//        }
-//
-////         launching a coroutine to delay for a period of shortAnimTime so that menuItem can fade
-////         out before menu being cleared
-//        lifecycleScope.launchWhenStarted {
-//            delay(resources.getInteger(R.integer.shortAnimTime).toLong())
-//            actionMode?.menu?.clear()
-//            actionMode?.menuInflater?.inflate(R.menu.app_bar_plant_viewing, actionMode?.menu)
-//        }
     }
 
     private fun setBottomNavigationVisibility(visibility: Int) {
@@ -565,7 +525,15 @@ class PlantFragment : Fragment() {
         @DrawableRes actionBarCloseResource: Int,
         actionBarTitleString: CharSequence? = null
     ) {
-        actionMode = startSupportActionMode(getActionModeCallback(menuResource))?.apply {
+        actionMode = startSupportActionMode(
+            getActionModeCallback(
+                menuResource,
+                ::onCreateActionMode,
+                ::onPrepareActionMode,
+                ::processClickedActionItem,
+                ::onDestroyActionMode
+            )
+        )?.apply {
             title = actionBarTitleString
             activity.findViewById<AppCompatImageView>(R.id.action_mode_close_button).apply {
                 setImageResource(actionBarCloseResource)
@@ -577,37 +545,18 @@ class PlantFragment : Fragment() {
     private fun onClick(action: () -> Unit) {
         val previousState = plantViewModel.plantState.value.second
         if (previousState == null || previousState == PlantState.EDITING) action()
-        else plantViewModel.reverseChanges()
+        else plantViewModel.confirmReverse()
     }
 
-    private fun WateringPlantsActivity.getActionModeCallback(@MenuRes menuResource: Int) =
-        object : ActionMode.Callback {
-            override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
-                return onCreateActionMode(menuResource, menu)
-            }
-
-            override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
-                return onPrepareActionMode()
-            }
-
-            override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
-                return processClickedActionItem(item)
-            }
-
-            override fun onDestroyActionMode(mode: ActionMode?) {
-                onDestroyActionMode()
-            }
-        }
-
-    private fun WateringPlantsActivity.onDestroyActionMode() {
-        onBackPressed()
+    private fun onDestroyActionMode() {
+        activity.onBackPressed()
     }
 
-    private fun WateringPlantsActivity.onCreateActionMode(
+    private fun onCreateActionMode(
         @MenuRes menuResource: Int,
         menu: Menu?
     ): Boolean {
-        menuInflater.inflate(menuResource, menu)
+        activity.menuInflater.inflate(menuResource, menu)
         return true
     }
 
@@ -615,6 +564,21 @@ class PlantFragment : Fragment() {
 
     private fun processClickedActionItem(item: MenuItem?): Boolean {
         return plantViewModel.processClickedActionIten(item?.itemId)
+    }
+
+    private fun confirmChangesReversal() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dialog_title)
+            .setMessage(R.string.dialog_message)
+            .setNegativeButton(R.string.dialog_denial) { dialog, _ ->
+                plantViewModel.onNoClicked()
+                dialog.dismiss()
+            }
+            .setPositiveButton(R.string.dialog_confirmation) { dialog, _ ->
+                plantViewModel.onYesClicked()
+                dialog.dismiss()
+            }
+            .show()
     }
 
     private fun onEnterAnimationEnd() {

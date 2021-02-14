@@ -2,7 +2,6 @@ package ba.grbo.wateringplants.ui.viewmodels
 
 import android.Manifest
 import android.os.Bundle
-import android.util.Log
 import androidx.annotation.IdRes
 import androidx.annotation.StringRes
 import androidx.lifecycle.SavedStateHandle
@@ -69,8 +68,6 @@ class PlantViewModel @Inject constructor(
         }
 
         plantState.onEach {
-            Log.i("MainActivity", "first:${it.first}")
-            Log.i("MainActivity", "second:${it.second}")
             if (it.first == PlantState.EDITING) _adjustToEditingContextualActionBar.tryEmit(Unit)
             else if (it.first == PlantState.VIEWING && it.second == PlantState.EDITING)
                 _adjusToViewingContextualActionBar.tryEmit(plant.name)
@@ -106,6 +103,10 @@ class PlantViewModel @Inject constructor(
     private val _removeCurrentImageEvent = MutableStateFlow<Unit?>(null)
     val removeCurrentImageEvent: StateFlow<Unit?>
         get() = _removeCurrentImageEvent
+
+    private val _confirmReverseEvent = SharedStateLikeFlow<Boolean>()
+    val confirmReverseEvent: SharedFlow<Boolean>
+        get() = _confirmReverseEvent
 
     // Single Events
     private val _showPickImageTakePhoto = MutableStateFlow(true)
@@ -510,7 +511,21 @@ class PlantViewModel @Inject constructor(
         _showImageLoadingProgressEvent.tryEmit(true)
     }
 
-    fun reverseChanges() {
+    fun confirmReverse() {
+        _confirmReverseEvent.tryEmit(true)
+    }
+
+    fun onYesClicked() {
+        _confirmReverseEvent.tryEmit(false)
+        reverseChanges()
+        _showSnackBar.tryEmit(R.string.dialog_reversed)
+    }
+
+    fun onNoClicked() {
+        _confirmReverseEvent.tryEmit(false)
+    }
+
+    private fun reverseChanges() {
         plant.name = unmodifiedPlant.name
         plant.description = unmodifiedPlant.description
         plant.wateringPeriod = unmodifiedPlant.wateringPeriod

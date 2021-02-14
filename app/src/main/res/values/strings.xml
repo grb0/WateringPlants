@@ -53,6 +53,14 @@
     <string name="plant_successfully_inserted">Created successfully</string>
     <string name="plant_successfully_updated">Updated successfully</string>
     <string name="plant_img_failed_to_load">Image failed to load. Make sure the image is still available.</string>
+    <string name="dialog_reversed">Changes were discarded.</string>
+
+    <!--Dialog message-->
+    <string name="dialog_title">Discard changes</string>
+    <string name="dialog_message">Are you sure you want to discard changes you\'ve made?</string>
+    <string name="dialog_confirmation">Yes</string>
+    <string name="dialog_denial">No</string>
+
 
     <!--Layout-->
     <string name="plant_img_content_description">A plant</string>

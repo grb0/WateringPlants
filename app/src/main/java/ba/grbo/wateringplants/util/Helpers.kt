@@ -9,12 +9,16 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.text.TextUtils
+import android.view.Menu
+import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
+import androidx.annotation.MenuRes
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.view.ActionMode
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.lifecycle.lifecycleScope
@@ -300,3 +304,27 @@ class VerticalGridSpacingItemDecoration(
 }
 
 const val BUNDLE_ARGS = "BUNDLE_ARGS"
+
+fun getActionModeCallback(
+    @MenuRes menuResource: Int,
+    onCreateActionMode: (Int, Menu?) -> Boolean,
+    onPrepareActionMode: () -> Boolean,
+    processClickedActionItem: (MenuItem?) -> Boolean,
+    onDestroyActionMode: () -> Unit
+) = object : ActionMode.Callback {
+    override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+        return onCreateActionMode(menuResource, menu)
+    }
+
+    override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+        return onPrepareActionMode()
+    }
+
+    override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
+        return processClickedActionItem(item)
+    }
+
+    override fun onDestroyActionMode(mode: ActionMode?) {
+        onDestroyActionMode()
+    }
+}
