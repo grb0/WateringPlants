@@ -52,7 +52,7 @@ data class Plant(
 
     override fun toString() =
         "${javaClass.simpleName}(id=$id, name=$name, description=$description, " +
-                "waterinPeriod=$wateringPeriod, image=$image)"
+                "wateringPeriod=$wateringPeriod, image=$image)"
 
     override fun equals(other: Any?) = when (other) {
         null,
@@ -72,4 +72,12 @@ data class Plant(
         result = 31 * result + image.hashCode()
         return result
     }
+
+    fun clone() = Plant(
+        id,
+        MutableStateFlow(name),
+        MutableStateFlow(description),
+        MutableStateFlow(wateringPeriod),
+        MutableStateFlow(Image(image.path, image.rotationAngle))
+    )
 }

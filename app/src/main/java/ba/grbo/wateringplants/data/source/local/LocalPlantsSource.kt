@@ -16,10 +16,27 @@ import javax.inject.Inject
 class LocalPlantsSource @Inject constructor(
     private val plantDao: PlantDao,
 ) : PlantsSource {
-    override suspend fun insertPlant(plant: Plant): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun insertPlant(plant: Plant): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             plantDao.insert(plant)
-            Success(Unit)
+            Success(true)
+        } catch (e: Exception) {
+            Error(e)
+        }
+    }
+
+    override suspend fun updatePlant(plant: Plant): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            plantDao.update(plant)
+            Success(true)
+        } catch (e: Exception) {
+            Error(e)
+        }
+    }
+
+    override suspend fun getPlant(plantId: Int): Result<Plant> = withContext(Dispatchers.IO) {
+        try {
+            Success(plantDao.get(plantId))
         } catch (e: Exception) {
             Error(e)
         }

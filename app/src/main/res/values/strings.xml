@@ -22,9 +22,11 @@
     <!--region PlantFragment-->
     <!--App bar title-->
     <string name="add_plant">Add plant</string>
+    <string name="edit_plant">Edit plant</string>
 
     <!--App bar Menu-->
     <string name="create">Create</string>
+    <string name="update">Update</string>
 
     <!--Popup menu-->
     <string name="pick_image">Pick an image</string>
@@ -35,12 +37,21 @@
     <!--Snackbar messages-->
     <string name="plant_name_empty">Nameless plant? Not gonna work…</string>
     <string name="plant_description_empty">Descriptionless plant? Not gonna work…</string>
+    <string name="plant_watering_period_empty">Wateringless plant? Not gonna work…</string>
     <string name="plant_image_path_empty">Imageless plant? Not gonna work…</string>
     <string name="plant_complete_empty">Pure emptiness? Not gonna work…</string>
     <string name="plant_name_and_description_empty">Nameless and descriptionless plant? Not gonna work…</string>
+    <string name="plant_name_and_watering_period_empty">Nameless and wateringless plant? Not gonna work…</string>
     <string name="plant_name_and_image_path_empty">Nameless and imageless plant? Not gonna work…</string>
+    <string name="plant_name_description_and_watering_period_empty">Nameless, descriptionless and wateringperiodless plant? Not gonna work…</string>
+    <string name="plant_name_description_and_image_path_empty">Nameless, descriptionless and imageless plant? Not gonna work…</string>
+    <string name="plant_name_watering_period_and_image_path_empty">Nameless, wateringless and imageless plant? Not gonna work…</string>
     <string name="plant_description_and_image_path_empty">Descriptionless and imageless plant? Not gonna work…</string>
+    <string name="plant_description_and_watering_period_empty">Descriptionless and wateringless plant? Not gonna work…</string>
+    <string name="plant_description_watering_period_and_image_path_empty">Descriptionless, wateringless and imageless plant? Not gonna work…</string>
+    <string name="plant_watering_period_and_image_path_empty">Wateringless and imageless plant? Not gonna work…</string>
     <string name="plant_successfully_inserted">Created successfully</string>
+    <string name="plant_successfully_updated">Updated successfully</string>
     <string name="plant_img_failed_to_load">Image failed to load. Make sure the image is still available.</string>
 
     <!--Layout-->

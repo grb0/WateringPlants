@@ -1,32 +1,81 @@
 package ba.grbo.wateringplants.ui.viewmodels
 
 import android.Manifest
+import android.os.Bundle
+import android.util.Log
 import androidx.annotation.IdRes
 import androidx.annotation.StringRes
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import ba.grbo.wateringplants.R
 import ba.grbo.wateringplants.data.Image
 import ba.grbo.wateringplants.data.Plant
+import ba.grbo.wateringplants.data.Result
+import ba.grbo.wateringplants.data.Result.Success
 import ba.grbo.wateringplants.data.source.PlantsRepository
-import ba.grbo.wateringplants.util.SharedStateLikeFlow
-import ba.grbo.wateringplants.util.SingleSharedFlow
-import ba.grbo.wateringplants.util.value
+import ba.grbo.wateringplants.ui.fragments.PlantFragmentArgs
+import ba.grbo.wateringplants.util.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class PlantViewModel @Inject constructor(
-    private val repository: PlantsRepository
+    private val repository: PlantsRepository,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     //region Properties
-    private var plant = Plant()
+
+    private val fragmentArgs = savedStateHandle.get<Bundle>(BUNDLE_ARGS)!!
+    private val args = PlantFragmentArgs.fromBundle(fragmentArgs)
+
+    private val _plantState =
+        MutableStateFlow<Pair<PlantState, PlantState?>>(args.plantState to null)
+    val plantState: StateFlow<Pair<PlantState, PlantState?>>
+        get() = _plantState
+
+    private val _adjustToEditingContextualActionBar = SharedStateLikeFlow<Unit>()
+    val adjustToEditingContextualActionBar: SharedFlow<Unit>
+        get() = _adjustToEditingContextualActionBar
+
+    private val _adjusToViewingContextualActionBar = SharedStateLikeFlow<String>()
+    val adjustToViewingContextualActionbar: SharedFlow<String>
+        get() = _adjusToViewingContextualActionBar
+
+    private val plantId = args.plantId
+
+    private lateinit var plant: Plant
+    private lateinit var unmodifiedPlant: Plant
+
+    private val _collectPlantFlowsEvent = SharedStateLikeFlow<Unit>()
+    val collectPlantFlowsEvent = _collectPlantFlowsEvent.distinctUntilChanged()
+
+    init {
+        if (_plantState.value == PlantState.ADDING to null) {
+            plant = Plant()
+            viewModelScope.launch { _collectPlantFlowsEvent.emit(Unit) }
+        } else viewModelScope.launch(Dispatchers.IO) {
+            val retrievedPlant = repository.getPlant(plantId)
+            if (retrievedPlant is Success) {
+                plant = retrievedPlant.data
+                unmodifiedPlant = plant.clone()
+                _collectPlantFlowsEvent.emit(Unit)
+                _showPickImageTakePhoto.emit(false)
+            }
+            // TODO else notify user of error retrievedPlant as Error -> retrievedPlant.exception
+        }
+
+        plantState.onEach {
+            Log.i("MainActivity", "first:${it.first}")
+            Log.i("MainActivity", "second:${it.second}")
+            if (it.first == PlantState.EDITING) _adjustToEditingContextualActionBar.tryEmit(Unit)
+            else if (it.first == PlantState.VIEWING && it.second == PlantState.EDITING)
+                _adjusToViewingContextualActionBar.tryEmit(plant.name)
+        }.launchIn(viewModelScope)
+    }
 
     private val readExternalStoragePermission = Manifest.permission.READ_EXTERNAL_STORAGE
     private val cameraPermission = Manifest.permission.CAMERA
@@ -41,8 +90,15 @@ class PlantViewModel @Inject constructor(
             }
         }
 
-    private val _triggerContextualActionBar = SharedStateLikeFlow<Pair<@StringRes Int, Boolean>>()
-    val triggerContextualActionBar = _triggerContextualActionBar.distinctUntilChanged()
+    private val _removeBottomNavigationEvent = SharedStateLikeFlow<Int>()
+    val removeBottomNavigation = _removeBottomNavigationEvent.distinctUntilChanged()
+
+    private val _triggerAddingContextualActionBar = SharedStateLikeFlow<Unit>()
+    val triggerAddingContextualActionBar = _triggerAddingContextualActionBar.distinctUntilChanged()
+
+    private val _triggerViewingContextualActionBar = SharedStateLikeFlow<String>()
+    val triggerViewingContextualActionbar =
+        _triggerViewingContextualActionBar.distinctUntilChanged()
 
     private val _showImageLoadingProgressEvent = SharedStateLikeFlow<Boolean>()
     val showImageLoadingProgressEvent = _showImageLoadingProgressEvent.distinctUntilChanged()
@@ -127,7 +183,10 @@ class PlantViewModel @Inject constructor(
 
     //region Helper methods
     fun onEnterAnimationStart() {
-        _triggerContextualActionBar.tryEmit(R.string.add_plant to false)
+        _removeBottomNavigationEvent.tryEmit(false.toVisibility)
+        if (_plantState.value.first == PlantState.ADDING) _triggerAddingContextualActionBar.tryEmit(
+            Unit
+        ) else _triggerViewingContextualActionBar.tryEmit(plant.name)
     }
 
     fun onEnterAnimationEnd() {
@@ -197,8 +256,24 @@ class PlantViewModel @Inject constructor(
                 if (plant.image.path.isNotEmpty()) _removeCurrentImageEvent.value = Unit
                 _showPickImageTakePhoto.tryEmit(false)
                 plant.image = plant.image.copy(path = pickedImagePath)
+                checkPlantState()
             }
         }
+    }
+
+    private fun checkPlantState() {
+        if (_plantState.value.first == PlantState.VIEWING) onPlantEdited()
+        else if (_plantState.value.first == PlantState.EDITING) onPlantNotEdited()
+    }
+
+    private fun isPlantEdited() = plant != unmodifiedPlant
+
+    private fun onPlantEdited() {
+        if (isPlantEdited()) _plantState.value = PlantState.EDITING to PlantState.VIEWING
+    }
+
+    private fun onPlantNotEdited() {
+        if (!isPlantEdited()) _plantState.value = PlantState.VIEWING to PlantState.EDITING
     }
 
     fun onTakeImageResultArrival(wasTaken: Boolean, takenPhotoPath: String?) {
@@ -237,6 +312,7 @@ class PlantViewModel @Inject constructor(
     private fun onRotateImageClick(rotationAngle: Float) {
         val totalRotationAngle = plant.image.rotationAngle + rotationAngle
         plant.image = plant.image.copy(rotationAngle = totalRotationAngle)
+        checkPlantState()
     }
 
     private fun onRotateImageRightClick() {
@@ -253,62 +329,99 @@ class PlantViewModel @Inject constructor(
         }
     }
 
-    fun setPlantName(text: String) {
-        if (text != plant.name) plant.name = text
+    fun setPlantName(name: String) {
+        if (name != plant.name) {
+            plant.name = name
+            checkPlantState()
+        }
     }
 
-    fun setPlantDescription(text: String) {
-        if (text != plant.description) plant.description = text
+    fun setPlantDescription(description: String) {
+        if (description != plant.description) {
+            plant.description = description
+            checkPlantState()
+        }
     }
 
-    fun setWateringPeriod(text: String) {
-        if (text != plant.wateringPeriod) plant.wateringPeriod = text
+    fun setWateringPeriod(wateringPeriod: String) {
+        if (wateringPeriod != plant.wateringPeriod) {
+            plant.wateringPeriod = wateringPeriod
+            checkPlantState()
+        }
     }
 
-    fun onCreatePlantClicked(): Boolean {
+    private fun writeToDB(
+        writeToDBAction: suspend (Plant) -> Result<Boolean>,
+        notifyUserSuccessfulAction: () -> Unit
+    ) {
         if (shouldSavePlant()) viewModelScope.launch(Dispatchers.IO) {
-            repository.insertPlant(plant)
-            notifyUserOfSuccessfulInsert()
-            goBackToPlantsFragment()
+            val status = writeToDBAction(plant)
+            if (status is Success) {
+                notifyUserSuccessfulAction()
+                goBackToPlantsFragment()
+            }
+            // TODO notify user of error
         } else notifyUserOfIncompletePlant()
+    }
+
+    fun processClickedActionIten(@IdRes menuId: Int?): Boolean {
+        menuId?.let {
+            when (it) {
+                R.id.create -> writeToDB(repository::insertPlant, ::notifyUserOfSuccessfulInsert)
+                R.id.update -> writeToDB(repository::updatePlant, ::notifyUserOfSuccessfulUpdate)
+                else -> throw IllegalArgumentException("Unknown menuId: $menuId")
+            }
+        }
         return true
     }
 
     private fun isPlantNameEmpty() = plant.name.isEmpty()
     private fun isPlantDescriptionEmpty() = plant.description.isEmpty()
+    private fun isPlantWateringPeriodEmpty() = plant.wateringPeriod.isEmpty()
     private fun isPlantImagePathEmpty() = plant.image.path.isEmpty()
 
     private fun shouldSavePlant(): Boolean {
-        return !isPlantNameEmpty() && !isPlantDescriptionEmpty() && !isPlantImagePathEmpty()
+        return !isPlantNameEmpty() && !isPlantDescriptionEmpty() &&
+                !isPlantWateringPeriodEmpty() && !isPlantImagePathEmpty()
     }
 
     private fun notifyUserOfIncompletePlant() {
         val isPlantNameEmpty = isPlantNameEmpty()
         val isPlantDescriptionEmpty = isPlantDescriptionEmpty()
+        val isPlantWateringPeriodEmpty = isPlantWateringPeriodEmpty()
         val isPlantImagePathEmpty = isPlantImagePathEmpty()
 
         when {
-            isPlantNameEmpty && !isPlantDescriptionEmpty && !isPlantImagePathEmpty -> {
-                notifyUserOfEmptyPlantName()
-            }
-            isPlantNameEmpty && isPlantDescriptionEmpty && !isPlantImagePathEmpty -> {
-                notifyUserOfEmptyPlantNameAndDescription()
-            }
-            isPlantNameEmpty && !isPlantDescriptionEmpty && isPlantImagePathEmpty -> {
-                notifyUserOfEmptyePlantNameAndImagePath()
-            }
-            !isPlantNameEmpty && isPlantDescriptionEmpty && !isPlantImagePathEmpty -> {
-                notifyUserOfEmptyPlantDescription()
-            }
-            !isPlantNameEmpty && isPlantDescriptionEmpty && isPlantImagePathEmpty -> {
-                notifyUserOfEmptyPlantDescriptionAndImagePath()
-            }
-            !isPlantNameEmpty && !isPlantDescriptionEmpty && isPlantImagePathEmpty -> {
-                notifyUserOfEmptyPlantImagePath()
-            }
-            isPlantNameEmpty && isPlantDescriptionEmpty && isPlantImagePathEmpty -> {
-                notifyUserOfCompleteEmptiness()
-            }
+            isPlantNameEmpty && !isPlantDescriptionEmpty && !isPlantWateringPeriodEmpty &&
+                    !isPlantImagePathEmpty -> notifyUserOfEmptyPlantName()
+            isPlantNameEmpty && isPlantDescriptionEmpty && !isPlantWateringPeriodEmpty &&
+                    !isPlantImagePathEmpty -> notifyUserOfEmptyPlantNameAndDescription()
+            isPlantNameEmpty && !isPlantDescriptionEmpty && isPlantWateringPeriodEmpty &&
+                    !isPlantImagePathEmpty -> notifyUserOfEmptyPlantNameAndWateringPeriod()
+            isPlantNameEmpty && !isPlantDescriptionEmpty && !isPlantWateringPeriodEmpty &&
+                    isPlantImagePathEmpty -> notifyUserOfEmptyPlantNameAndImagePath()
+            isPlantNameEmpty && isPlantDescriptionEmpty && isPlantWateringPeriodEmpty &&
+                    !isPlantImagePathEmpty -> notifyUserOfEmptyPlantNameDescriptionAndWateringPeriod()
+            isPlantNameEmpty && isPlantDescriptionEmpty && !isPlantWateringPeriodEmpty &&
+                    isPlantImagePathEmpty -> notifyUserOfEmptyPlantNameDescriptiondAndImagePath()
+            isPlantNameEmpty && !isPlantDescriptionEmpty && isPlantWateringPeriodEmpty &&
+                    isPlantImagePathEmpty -> notifyUserOfEmptyPlantNameWateringPeriodAndImagePath()
+            !isPlantNameEmpty && isPlantDescriptionEmpty && !isPlantWateringPeriodEmpty &&
+                    !isPlantImagePathEmpty -> notifyUserOfEmptyPlantDescription()
+            !isPlantNameEmpty && isPlantDescriptionEmpty && isPlantWateringPeriodEmpty &&
+                    !isPlantImagePathEmpty -> notifyUserOfEmptyPlantDescriptionAndWateringPeriod()
+            !isPlantNameEmpty && isPlantDescriptionEmpty && !isPlantWateringPeriodEmpty &&
+                    isPlantImagePathEmpty -> notifyUserOfEmptyPlantDescriptionAndImagePath()
+            !isPlantNameEmpty && isPlantDescriptionEmpty && isPlantWateringPeriodEmpty &&
+                    isPlantImagePathEmpty -> notifyUserOfEmptyPlantDescriptionWateringPeriodAndImagePath()
+            !isPlantNameEmpty && !isPlantDescriptionEmpty && isPlantWateringPeriodEmpty &&
+                    !isPlantImagePathEmpty -> notifyUserOfEmptyPlantWateringPeriod()
+            !isPlantNameEmpty && !isPlantDescriptionEmpty && isPlantWateringPeriodEmpty &&
+                    isPlantImagePathEmpty -> notifyUserOfEmptyPlantWateringPeriodAndImagePath()
+            !isPlantNameEmpty && !isPlantDescriptionEmpty && !isPlantWateringPeriodEmpty &&
+                    isPlantImagePathEmpty -> notifyUserOfEmptyPlantImagePath()
+            isPlantNameEmpty && isPlantDescriptionEmpty && isPlantWateringPeriodEmpty &&
+                    isPlantImagePathEmpty -> notifyUserOfCompleteEmptiness()
         }
     }
 
@@ -320,16 +433,48 @@ class PlantViewModel @Inject constructor(
         _showSnackBar.tryEmit(R.string.plant_name_and_description_empty)
     }
 
-    private fun notifyUserOfEmptyePlantNameAndImagePath() {
+    private fun notifyUserOfEmptyPlantNameAndWateringPeriod() {
+        _showSnackBar.tryEmit(R.string.plant_name_and_watering_period_empty)
+    }
+
+    private fun notifyUserOfEmptyPlantNameAndImagePath() {
         _showSnackBar.tryEmit(R.string.plant_name_and_image_path_empty)
+    }
+
+    private fun notifyUserOfEmptyPlantNameDescriptionAndWateringPeriod() {
+        _showSnackBar.tryEmit(R.string.plant_name_description_and_watering_period_empty)
+    }
+
+    private fun notifyUserOfEmptyPlantNameDescriptiondAndImagePath() {
+        _showSnackBar.tryEmit(R.string.plant_name_description_and_image_path_empty)
+    }
+
+    private fun notifyUserOfEmptyPlantNameWateringPeriodAndImagePath() {
+        _showSnackBar.tryEmit(R.string.plant_name_watering_period_and_image_path_empty)
     }
 
     private fun notifyUserOfEmptyPlantDescription() {
         _showSnackBar.tryEmit(R.string.plant_description_empty)
     }
 
+    private fun notifyUserOfEmptyPlantDescriptionAndWateringPeriod() {
+        _showSnackBar.tryEmit(R.string.plant_description_and_watering_period_empty)
+    }
+
     private fun notifyUserOfEmptyPlantDescriptionAndImagePath() {
         _showSnackBar.tryEmit(R.string.plant_description_and_image_path_empty)
+    }
+
+    private fun notifyUserOfEmptyPlantDescriptionWateringPeriodAndImagePath() {
+        _showSnackBar.tryEmit(R.string.plant_description_watering_period_and_image_path_empty)
+    }
+
+    private fun notifyUserOfEmptyPlantWateringPeriod() {
+        _showSnackBar.tryEmit(R.string.plant_watering_period_empty)
+    }
+
+    private fun notifyUserOfEmptyPlantWateringPeriodAndImagePath() {
+        _showSnackBar.tryEmit(R.string.plant_watering_period_and_image_path_empty)
     }
 
     private fun notifyUserOfEmptyPlantImagePath() {
@@ -342,6 +487,10 @@ class PlantViewModel @Inject constructor(
 
     private fun notifyUserOfSuccessfulInsert() {
         _showSnackBar.tryEmit(R.string.plant_successfully_inserted)
+    }
+
+    private fun notifyUserOfSuccessfulUpdate() {
+        _showSnackBar.tryEmit(R.string.plant_successfully_updated)
     }
 
     private fun goBackToPlantsFragment() {
@@ -359,6 +508,14 @@ class PlantViewModel @Inject constructor(
 
     fun showImageLoadingProgressEvent() {
         _showImageLoadingProgressEvent.tryEmit(true)
+    }
+
+    fun reverseChanges() {
+        plant.name = unmodifiedPlant.name
+        plant.description = unmodifiedPlant.description
+        plant.wateringPeriod = unmodifiedPlant.wateringPeriod
+        plant.image = Image(unmodifiedPlant.image.path, unmodifiedPlant.image.rotationAngle)
+        _plantState.value = PlantState.VIEWING to PlantState.EDITING
     }
     //endregion
 }

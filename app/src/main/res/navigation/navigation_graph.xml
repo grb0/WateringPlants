@@ -32,7 +32,15 @@
         android:id="@+id/plantFragment"
         android:name="ba.grbo.wateringplants.ui.fragments.PlantFragment"
         android:label="fragment_plant"
-        tools:layout="@layout/fragment_plant" />
+        tools:layout="@layout/fragment_plant" >
+        <argument
+            android:name="plantState"
+            app:argType="ba.grbo.wateringplants.util.PlantState" />
+        <argument
+            android:name="plantId"
+            app:argType="integer"
+            android:defaultValue="-1" />
+    </fragment>
     <fragment
         android:id="@+id/settingsFragment"
         android:name="ba.grbo.wateringplants.ui.fragments.SettingsFragment"

@@ -7,12 +7,12 @@ import ba.grbo.wateringplants.R
 import ba.grbo.wateringplants.data.Plant
 import ba.grbo.wateringplants.data.Result
 import ba.grbo.wateringplants.data.source.PlantsRepository
+import ba.grbo.wateringplants.util.PlantState
 import ba.grbo.wateringplants.util.SharedStateLikeFlow
 import ba.grbo.wateringplants.util.SingleSharedFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
-import java.lang.Exception
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,7 +30,10 @@ class PlantsViewModel @Inject constructor(
             .onEach {
                 _plants.emit(
                     if (it is Result.Success) it.data
-                    else throw Exception("Unable to retrieve data from db.")
+                    else {
+                        // TODO notify user of error it as error -> it.exception
+                        listOf()
+                    }
                 )
             }
             .flowOn(Dispatchers.Default)
@@ -38,9 +41,13 @@ class PlantsViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    private val _addPlantEvent = SingleSharedFlow<Unit>()
-    val addPlantEvent: SharedFlow<Unit>
+    private val _addPlantEvent = SingleSharedFlow<PlantState>()
+    val addPlantEvent: SharedFlow<PlantState>
         get() = _addPlantEvent
+
+    private val _viewPlantEvent = SingleSharedFlow<Pair<PlantState, Int>>()
+    val viewPlantEvent: SharedFlow<Pair<PlantState, Int>>
+        get() = _viewPlantEvent
 
     private val _removeGlideCacheEvent = SingleSharedFlow<Unit>()
     val removeGlideCacheEvent: SharedFlow<Unit>
@@ -58,7 +65,7 @@ class PlantsViewModel @Inject constructor(
     //region Helper methods
     fun processActionBarItemId(@IdRes itemId: Int): Boolean {
         when (itemId) {
-            R.id.add -> _addPlantEvent.tryEmit(Unit)
+            R.id.add -> _addPlantEvent.tryEmit(PlantState.ADDING)
             R.id.delete_all -> _removeGlideCacheEvent.tryEmit(Unit)
         }
         return true
@@ -70,6 +77,10 @@ class PlantsViewModel @Inject constructor(
 
     fun onEnterAnimationEnd() {
         _enterAnimationEndEvent.tryEmit(Unit)
+    }
+
+    fun onPlantCardClicked(plantId: Int) {
+        _viewPlantEvent.tryEmit(PlantState.VIEWING to plantId)
     }
     //endregion
 }

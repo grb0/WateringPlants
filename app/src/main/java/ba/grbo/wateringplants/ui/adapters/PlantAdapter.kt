@@ -17,11 +17,13 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import java.io.File
 
-class PlantAdapter : ListAdapter<Plant, PlantAdapter.ViewHolder>(PlantDiffCallbacks()) {
+class PlantAdapter(
+    private val onPlantCardClickListener: OnPlantCardClickListener
+) : ListAdapter<Plant, PlantAdapter.ViewHolder>(PlantDiffCallbacks()) {
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        return ViewHolder.from(parent)
+        return ViewHolder.from(parent, onPlantCardClickListener)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -29,19 +31,25 @@ class PlantAdapter : ListAdapter<Plant, PlantAdapter.ViewHolder>(PlantDiffCallba
     }
 
     class ViewHolder private constructor(
-        private val binding: PlantItemBinding
+        private val binding: PlantItemBinding,
+        private val onPlantCardClickListener: OnPlantCardClickListener
     ) : RecyclerView.ViewHolder(binding.root) {
         companion object {
-            fun from(parent: ViewGroup) = ViewHolder(
+            fun from(
+                parent: ViewGroup,
+                onPlantCardClickListener: OnPlantCardClickListener
+            ) = ViewHolder(
                 PlantItemBinding.inflate(
                     LayoutInflater.from(parent.context),
                     parent,
                     false
-                )
+                ),
+                onPlantCardClickListener
             )
         }
 
         fun bind(plant: Plant) {
+            binding.plantCard.setOnClickListener { onPlantCardClickListener.onClick(plant) }
             binding.plantName.text = plant.name
             loadAndSetImage(plant)
         }

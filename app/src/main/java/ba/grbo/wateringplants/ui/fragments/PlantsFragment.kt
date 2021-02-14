@@ -13,12 +13,10 @@ import androidx.recyclerview.widget.GridLayoutManager
 import ba.grbo.wateringplants.R
 import ba.grbo.wateringplants.databinding.FragmentPlantsBinding
 import ba.grbo.wateringplants.ui.activities.WateringPlantsActivity
+import ba.grbo.wateringplants.ui.adapters.OnPlantCardClickListener
 import ba.grbo.wateringplants.ui.adapters.PlantAdapter
 import ba.grbo.wateringplants.ui.viewmodels.PlantsViewModel
-import ba.grbo.wateringplants.util.GridSpacingItemDecoration
-import ba.grbo.wateringplants.util.VerticalGridSpacingItemDecoration
-import ba.grbo.wateringplants.util.collect
-import ba.grbo.wateringplants.util.onCreateAnimation
+import ba.grbo.wateringplants.util.*
 import com.bumptech.glide.Glide
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -40,7 +38,9 @@ class PlantsFragment : Fragment() {
     ): View {
         setHasOptionsMenu(true)
         viewModel.collectFlows()
-        val adapter = PlantAdapter()
+        val adapter = PlantAdapter(OnPlantCardClickListener {
+            viewModel.onPlantCardClicked(it)
+        })
         binding = FragmentPlantsBinding.inflate(inflater, container, false).apply {
             plantsRecyclerView.addItemDecoration(
                 if (resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT)
@@ -86,7 +86,8 @@ class PlantsFragment : Fragment() {
     //region Flow collectors
     private fun PlantsViewModel.collectFlows() {
         collect(plants) { (binding.plantsRecyclerView.adapter as PlantAdapter).submitList(it) }
-        collect(addPlantEvent) { onAddPlant() }
+        collect(addPlantEvent) { addPlant(it) }
+        collect(viewPlantEvent) { viewPlant(it) }
         collect(removeGlideCacheEvent) {
             lifecycleScope.launch(Dispatchers.Default) {
                 Glide.get(requireContext()).clearDiskCache()
@@ -98,12 +99,23 @@ class PlantsFragment : Fragment() {
     //endregion
 
     //region Helper methods
-    private fun onAddPlant() {
-        activity.onAddPlant()
+    private fun addPlant(plantState: PlantState) {
+        activity.setBottomNavigationVisibility(View.GONE)
+        navigateToPlantFragment(plantState)
     }
 
-    private fun navigateToPlantFragment() {
-        findNavController().navigate(PlantsFragmentDirections.actionPlantsFragmentToPlantFragment())
+    private fun viewPlant(plantInfo: Pair<PlantState, Int>) {
+        activity.setBottomNavigationVisibility(View.GONE)
+        navigateToPlantFragment(plantInfo.first, plantInfo.second)
+    }
+
+    private fun navigateToPlantFragment(plantState: PlantState, plantId: Int = -1) {
+        findNavController().navigate(
+            PlantsFragmentDirections.actionPlantsFragmentToPlantFragment(
+                plantState,
+                plantId
+            )
+        )
     }
 
     private fun onEnterAnimationStart() {
@@ -112,11 +124,6 @@ class PlantsFragment : Fragment() {
 
     private fun onEnterAnimationEnd() {
         activity.onEnterAnimationEnd()
-    }
-
-    private fun WateringPlantsActivity.onAddPlant() {
-        setBottomNavigationVisibility(View.GONE)
-        navigateToPlantFragment()
     }
 
     private fun WateringPlantsActivity.onEnterAnimationEnd() {

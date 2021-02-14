@@ -8,7 +8,13 @@ import javax.inject.Inject
 class DefaultPlantsRepository @Inject constructor(
     private val plantsSource: PlantsSource
 ) : PlantsRepository {
-    override suspend fun insertPlant(plant: Plant): Result<Unit> = plantsSource.insertPlant(plant)
+    override suspend fun insertPlant(plant: Plant): Result<Boolean> =
+        plantsSource.insertPlant(plant)
+
+    override suspend fun updatePlant(plant: Plant): Result<Boolean> =
+        plantsSource.updatePlant(plant)
+
+    override suspend fun getPlant(plantId: Int): Result<Plant> = plantsSource.getPlant(plantId)
 
     override fun getAllPlants(): Flow<Result<List<Plant>>> = plantsSource.getAllPlants()
 }

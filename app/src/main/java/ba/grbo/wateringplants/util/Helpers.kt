@@ -31,25 +31,28 @@ import kotlin.math.roundToInt
 fun getAnimation(
     context: Context,
     animation: Int,
-    onAnimationStart: () -> Unit,
-    onAnimationEnd: () -> Unit,
+    onAnimationStart: (() -> Unit)? = null,
+    onAnimationEnd: (() -> Unit)? = null,
+    onAnimationRepeat: (() -> Unit)? = null
 ): Animation = AnimationUtils.loadAnimation(context, animation).apply {
-    setAnimationListener(getAnimationListener(onAnimationStart, onAnimationEnd))
+    setAnimationListener(getAnimationListener(onAnimationStart, onAnimationEnd, onAnimationRepeat))
 }
 
 private fun getAnimationListener(
-    onAnimationStart: () -> Unit,
-    onAnimationEnd: () -> Unit
+    onAnimationStart: (() -> Unit)? = null,
+    onAnimationEnd: (() -> Unit)? = null,
+    onAnimationRepeat: (() -> Unit)? = null
 ) = object : Animation.AnimationListener {
     override fun onAnimationStart(animation: Animation?) {
-        onAnimationStart()
+        onAnimationStart?.invoke()
     }
 
     override fun onAnimationEnd(animation: Animation?) {
-        onAnimationEnd()
+        onAnimationEnd?.invoke()
     }
 
     override fun onAnimationRepeat(animation: Animation?) {
+        onAnimationRepeat?.invoke()
     }
 }
 
@@ -295,3 +298,5 @@ class VerticalGridSpacingItemDecoration(
         outRect.right = spacing
     }
 }
+
+const val BUNDLE_ARGS = "BUNDLE_ARGS"

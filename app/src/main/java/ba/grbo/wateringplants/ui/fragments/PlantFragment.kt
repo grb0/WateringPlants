@@ -10,14 +10,17 @@ import android.graphics.drawable.InsetDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import android.util.TypedValue
 import android.view.*
 import android.view.animation.Animation
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.StringRes
+import androidx.annotation.*
 import androidx.appcompat.view.ActionMode
 import androidx.appcompat.view.menu.MenuBuilder
+import androidx.appcompat.widget.AppCompatImageView
+import androidx.appcompat.widget.AppCompatTextView
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
@@ -50,6 +53,9 @@ class PlantFragment : Fragment() {
     private val imageMimeType = "image/*"
     private val plantViewModel: PlantViewModel by viewModels()
     private var actionMode: ActionMode? = null
+
+    private lateinit var actionModeCloseButton: AppCompatImageView
+    private lateinit var actionModeTitle: AppCompatTextView
 
     private val requestReadExternalStoragePermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -188,15 +194,28 @@ class PlantFragment : Fragment() {
             plantViewModel::onEnterAnimationEnd
         ) { t, e, a -> super.onCreateAnimation(t, e, a) }
     }
+
+    override fun setArguments(args: Bundle?) {
+        if (args != null) super.setArguments(Bundle().apply { putBundle(BUNDLE_ARGS, args) })
+        else super.setArguments(null)
+    }
     //endregion
 
     //region Flow collectors
     private fun PlantViewModel.collectFlows() {
-        collect(triggerContextualActionBar) {
-            triggerContextualActionBar(it.first, it.second.toVisibility)
+        collect(removeBottomNavigation) { setBottomNavigationVisibility(it) }
+        collect(triggerAddingContextualActionBar) { triggerAddingContextualActionBar() }
+        collect(triggerViewingContextualActionbar) { triggerViewingContextualActionBar(it) }
+        collect(adjustToEditingContextualActionBar) {
+            if (plantState.value.first == PlantState.EDITING) adjustToEditingContextualActionBar()
         }
-        collect(plantImage) { if (it.path.isNotEmpty()) loadAndSetPickedImage(it) }
-        collect(showImageLoadingProgressEvent) { setImageLoadingProgressVisibility(it.toVisibility) }
+        collect(adjustToViewingContextualActionbar) {
+            if (plantState.value.first == PlantState.VIEWING) adjustToViewingContextualActionbar(it)
+        }
+        collect(collectPlantFlowsEvent) { collectPlantFlows() }
+        collect(showImageLoadingProgressEvent) {
+            setImageLoadingProgressVisibility(it.toVisibility)
+        }
         collect(removeCurrentImageEvent) { it?.run { removeCurrentImage() } }
         collect(showPickImageTakePhoto) { setPickImageTakePhotoVisibility(it.toVisibility) }
         collect(checkIfReadExternalStoragePermissionWasAlreadyGiven) {
@@ -205,7 +224,9 @@ class PlantFragment : Fragment() {
         collect(checkIfBothPermissionsWereAlreadyGiven) {
             wereBothPermissionsAlreadyGivenResultArrival()
         }
-        collect(askForReadExternalStoragePermissionEvent) { askForReadExternalStoragePermission(it) }
+        collect(askForReadExternalStoragePermissionEvent) {
+            askForReadExternalStoragePermission(it)
+        }
         collect(askForCameraPermissionEvent) { askForCameraPermission(it) }
         collect(askForBothPermissionsEvent) { askForBothPermissions(it) }
         collect(showPopupMenuEvent) { showPopupMenu() }
@@ -213,14 +234,18 @@ class PlantFragment : Fragment() {
         collect(takePhotoEvent) { takePhoto() }
         collect(enterAnimationEndEvent) { this@PlantFragment.onEnterAnimationEnd() }
         collect(wateringPeriodVisibility) { setViewsVisibilities(it) }
+        collect(showSnackbar) { showSnackbar(it) }
+        collect(backToPlantsFragment) { actionMode?.finish() }
+    }
+
+    private fun PlantViewModel.collectPlantFlows() {
+        collect(plantImage) { if (it.path.isNotEmpty()) loadAndSetPickedImage(it) }
         collect(plantName) { setEditText(binding.plantNameEditText, it) }
         collect(plantDescription) { setEditText(binding.plantDescriptionEditText, it) }
         collect(plantWateringPeriod) {
             setEditText(binding.wateringPeriodEditText, it)
             setCalendarText(it)
         }
-        collect(showSnackbar) { showSnackbar(it) }
-        collect(backToPlantsFragment) { actionMode?.finish() }
     }
     //endregion
 
@@ -258,10 +283,6 @@ class PlantFragment : Fragment() {
 
     private fun setImageLoadingProgressVisibility(visibility: Int) {
         binding.imgLoadingProgress.visibility = visibility
-    }
-
-    private fun triggerContextualActionBar(@StringRes actionBarTitle: Int, visibility: Int) {
-        activity.triggerContextualActionBar(actionBarTitle, visibility)
     }
 
     private fun loadAndSetPickedImage(image: Image) {
@@ -390,55 +411,210 @@ class PlantFragment : Fragment() {
         activity.onTouchListener = onTouchListener
     }
 
-    private fun WateringPlantsActivity.triggerContextualActionBar(
-        @StringRes actionbarTitle: Int,
-        visibility: Int
+    private fun getFadeOutRepeatAnimation(action: () -> Unit) = getAnimation(
+        requireContext(),
+        R.anim.fade_out_repeat,
+        onAnimationRepeat = action
+    )
+
+    private fun getFadeOutAnimation(action: () -> Unit) = getAnimation(
+        requireContext(),
+        R.anim.fade_out,
+        onAnimationEnd = action
+    )
+
+    private fun getFadeInAnimation(action: () -> Unit) = getAnimation(
+        requireContext(),
+        R.anim.fade_in,
+        onAnimationEnd = action
+    )
+
+    private fun retrieveResourceId() = TypedValue().apply {
+        requireContext().theme.resolveAttribute(
+            R.attr.homeAsUpIndicator,
+            this,
+            true
+        )
+    }.resourceId
+
+    private fun clearAndInflateMenu(@MenuRes menuLayout: Int) {
+        actionMode?.menu?.clear()
+        actionMode?.menuInflater?.inflate(menuLayout, actionMode?.menu)
+    }
+
+    private fun setContextualActionBarAnimations(
+        @DrawableRes closeButtonDrawableId: Int,
+        title: CharSequence,
+        menuItemAnimation: (MenuItem) -> Animation
     ) {
-        setContextualActionBar(actionbarTitle)
-        setBottomNavigationVisibility(visibility)
-    }
+        val menuItem = actionMode?.menu?.findItem(R.id.update)
+        menuItem?.setActionView(R.layout.action_bar_update)
+        menuItem?.actionView?.startAnimation(menuItemAnimation(menuItem))
 
-    private fun WateringPlantsActivity.setContextualActionBar(@StringRes actionBarTitle: Int) {
-        startSupportActionMode(getActionModeCallback())?.apply {
-            title = getText(actionBarTitle)
+        if (::actionModeCloseButton.isInitialized) {
+            actionModeCloseButton.startAnimation(getFadeOutRepeatAnimation {
+                actionModeCloseButton.setImageResource(closeButtonDrawableId)
+            })
+        } else {
+            actionModeCloseButton = activity.findViewById(R.id.action_mode_close_button)
+            actionModeCloseButton.startAnimation(getFadeOutRepeatAnimation {
+                actionModeCloseButton.setImageResource(closeButtonDrawableId)
+            })
+        }
+
+        if (::actionModeTitle.isInitialized) {
+            actionModeTitle.startAnimation(getFadeOutRepeatAnimation {
+                actionModeTitle.text = title
+            })
+        } else {
+            actionModeTitle = activity.findViewById(R.id.action_bar_title)
+            actionModeTitle.startAnimation(getFadeOutRepeatAnimation {
+                actionModeTitle.text = title
+            })
         }
     }
 
-    private fun WateringPlantsActivity.getActionModeCallback() = object : ActionMode.Callback {
-        override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
-            return onCreateActionMode(menu)
+    private fun adjustToEditingContextualActionBar() {
+        Log.i("MainActivity", "adjusttoedit")
+        clearAndInflateMenu(R.menu.app_bar_plant_editing)
+        setContextualActionBarAnimations(
+            R.drawable.ic_close,
+            getText(R.string.edit_plant)
+        ) { getFadeInAnimation { it.actionView = null } }
+
+//        actionMode?.menu?.clear()
+//        actionMode?.menuInflater?.inflate(R.menu.app_bar_plant_editing, actionMode?.menu)
+//
+//        val menuItem = actionMode?.menu?.findItem(R.id.update)
+//        menuItem?.setActionView(R.layout.action_bar_update)
+//        menuItem?.actionView?.startAnimation(getFadeInAnimation { menuItem.actionView = null })
+//
+//        activity.findViewById<AppCompatImageView>(R.id.action_mode_close_button).apply {
+//            startAnimation(getFadeOutRepeatAnimation {
+//                setImageResource(R.drawable.ic_close)
+//            })
+//        }
+//
+//        activity.findViewById<AppCompatTextView>(R.id.action_bar_title).apply {
+//            startAnimation(getFadeOutRepeatAnimation {
+//                text = getText(R.string.edit_plant)
+//            })
+//        }
+    }
+
+    private fun adjustToViewingContextualActionbar(plantName: String) {
+        setContextualActionBarAnimations(
+            retrieveResourceId(),
+            plantName
+        ) { getFadeOutAnimation { it.actionView = null } }
+
+        // launching a coroutine to delay for a period of shortAnimTime so that menuItem can fade
+        // out before menu being cleared
+        lifecycleScope.launchWhenStarted {
+            delay(resources.getInteger(R.integer.shortAnimTime).toLong())
+            clearAndInflateMenu(R.menu.app_bar_plant_viewing)
         }
 
-        override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
-            return onPrepareActionMode()
-        }
+//        val menuItem = actionMode?.menu?.findItem(R.id.update)
+//        menuItem?.setActionView(R.layout.action_bar_update)
+//        menuItem?.actionView?.startAnimation(getFadeOutAnimation { menuItem.actionView = null })
+//
+//        activity.findViewById<AppCompatImageView>(R.id.action_mode_close_button).apply {
+//            startAnimation(getFadeOutRepeatAnimation {
+//                setImageResource(retrieveResourceId())
+//            })
+//        }
+//
+//        activity.findViewById<AppCompatTextView>(R.id.action_bar_title).apply {
+//            startAnimation(getFadeOutRepeatAnimation {
+//                text = plantName
+//            })
+//        }
+//
+////         launching a coroutine to delay for a period of shortAnimTime so that menuItem can fade
+////         out before menu being cleared
+//        lifecycleScope.launchWhenStarted {
+//            delay(resources.getInteger(R.integer.shortAnimTime).toLong())
+//            actionMode?.menu?.clear()
+//            actionMode?.menuInflater?.inflate(R.menu.app_bar_plant_viewing, actionMode?.menu)
+//        }
+    }
 
-        override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
-            return processClickedActionItem(mode, item)
-        }
+    private fun setBottomNavigationVisibility(visibility: Int) {
+        activity.setBottomNavigationVisibility(visibility)
+    }
 
-        override fun onDestroyActionMode(mode: ActionMode?) {
-            onDestroyActionMode()
+    private fun triggerAddingContextualActionBar() {
+        activity.triggerContextualActionBar(
+            R.menu.app_bar_plant_adding,
+            R.drawable.ic_close,
+            getText(R.string.add_plant)
+        )
+    }
+
+    private fun triggerViewingContextualActionBar(plantName: String) {
+        activity.triggerContextualActionBar(
+            R.menu.app_bar_plant_viewing,
+            retrieveResourceId(),
+            plantName
+        )
+    }
+
+    private fun WateringPlantsActivity.triggerContextualActionBar(
+        @MenuRes menuResource: Int,
+        @DrawableRes actionBarCloseResource: Int,
+        actionBarTitleString: CharSequence? = null
+    ) {
+        actionMode = startSupportActionMode(getActionModeCallback(menuResource))?.apply {
+            title = actionBarTitleString
+            activity.findViewById<AppCompatImageView>(R.id.action_mode_close_button).apply {
+                setImageResource(actionBarCloseResource)
+                setOnClickListener { onClick(::finish) }
+            }
         }
     }
+
+    private fun onClick(action: () -> Unit) {
+        val previousState = plantViewModel.plantState.value.second
+        if (previousState == null || previousState == PlantState.EDITING) action()
+        else plantViewModel.reverseChanges()
+    }
+
+    private fun WateringPlantsActivity.getActionModeCallback(@MenuRes menuResource: Int) =
+        object : ActionMode.Callback {
+            override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+                return onCreateActionMode(menuResource, menu)
+            }
+
+            override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+                return onPrepareActionMode()
+            }
+
+            override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
+                return processClickedActionItem(item)
+            }
+
+            override fun onDestroyActionMode(mode: ActionMode?) {
+                onDestroyActionMode()
+            }
+        }
 
     private fun WateringPlantsActivity.onDestroyActionMode() {
         onBackPressed()
     }
 
-    private fun WateringPlantsActivity.onCreateActionMode(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.app_bar_plant, menu)
+    private fun WateringPlantsActivity.onCreateActionMode(
+        @MenuRes menuResource: Int,
+        menu: Menu?
+    ): Boolean {
+        menuInflater.inflate(menuResource, menu)
         return true
     }
 
     private fun onPrepareActionMode() = false
 
-    private fun processClickedActionItem(mode: ActionMode?, item: MenuItem?) = when (item?.itemId) {
-        R.id.create -> {
-            actionMode = mode
-            plantViewModel.onCreatePlantClicked()
-        }
-        else -> false
+    private fun processClickedActionItem(item: MenuItem?): Boolean {
+        return plantViewModel.processClickedActionIten(item?.itemId)
     }
 
     private fun onEnterAnimationEnd() {
