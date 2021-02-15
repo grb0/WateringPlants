@@ -97,10 +97,6 @@ class PlantFragment : Fragment() {
         savedInstanceState?.run { takenPhotoPath = getString(TAKEN_PHOTO_PATH)!! }
         plantViewModel.collectFlows()
         binding = FragmentPlantBinding.inflate(inflater, container, false).apply {
-            plantFragmentConstraintLayout.setOnFocusChangeListener { _, hasFocus ->
-                plantViewModel.plantFragmentConstraintLayoutOnFocusChange(hasFocus)
-            }
-
             arrayOf(plantNameEditText, plantDescriptionEditText, wateringPeriodEditText).forEach {
                 it.setCustomOnFocusChangeListener(
                     ::showKeyboard,

@@ -116,8 +116,12 @@ fun TextInputEditText.setCustomOnFocusChangeListener(
     setOnFocusChangeListener { _, hasFocus ->
         if (hasFocus) {
             showKeyboard(this)
-            setOnTouchListener { onReleaseFocus(this, it, ::clearFocus) }
-            if (id != R.id.watering_period_edit_text) onEditTextReleaseFocus()
+            setOnTouchListener {
+                onReleaseFocus(this, it,) {
+                    clearFocus()
+                    if (id == R.id.watering_period_edit_text) onEditTextReleaseFocus()
+                }
+            }
         } else {
             hideKeyboard(this)
             setOnTouchListener(null)

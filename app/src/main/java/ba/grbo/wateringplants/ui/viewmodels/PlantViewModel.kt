@@ -288,11 +288,6 @@ class PlantViewModel @Inject constructor(
         _wateringPeriodVisibility.value = true
     }
 
-    fun plantFragmentConstraintLayoutOnFocusChange(hasFocus: Boolean) {
-        if (hasFocus && !_wateringPeriodVisibility.value)
-            _wateringPeriodVisibility.value = true
-    }
-
     fun processPopupMenuItemId(@IdRes itemId: Int): Boolean {
         when (itemId) {
             R.id.pick_img_popup -> onPickImageClick()
