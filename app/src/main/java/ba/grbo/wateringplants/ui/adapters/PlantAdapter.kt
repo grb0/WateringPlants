@@ -15,41 +15,38 @@ import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
+import com.google.android.material.card.MaterialCardView
 import java.io.File
 
 class PlantAdapter(
-    private val onPlantCardClickListener: OnPlantCardClickListener
+    private val onPlantCardClicked: (MaterialCardView, Int) -> Unit
 ) : ListAdapter<Plant, PlantAdapter.ViewHolder>(PlantDiffCallbacks()) {
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        return ViewHolder.from(parent, onPlantCardClickListener)
+        return ViewHolder.from(parent)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        holder.bind(getItem(position), onPlantCardClicked)
     }
 
     class ViewHolder private constructor(
-        private val binding: PlantItemBinding,
-        private val onPlantCardClickListener: OnPlantCardClickListener
+        private val binding: PlantItemBinding
     ) : RecyclerView.ViewHolder(binding.root) {
         companion object {
-            fun from(
-                parent: ViewGroup,
-                onPlantCardClickListener: OnPlantCardClickListener
-            ) = ViewHolder(
+            fun from(parent: ViewGroup) = ViewHolder(
                 PlantItemBinding.inflate(
                     LayoutInflater.from(parent.context),
                     parent,
                     false
-                ),
-                onPlantCardClickListener
+                )
             )
         }
 
-        fun bind(plant: Plant) {
-            binding.plantCard.setOnClickListener { onPlantCardClickListener.onClick(plant) }
+        fun bind(plant: Plant, onPlantCardClicked: (MaterialCardView, Int) -> Unit) {
+            binding.plantCard.transitionName = plant.id.toString()
+            binding.plantCard.setOnClickListener { onPlantCardClicked(binding.plantCard, plant.id) }
             binding.plantName.text = plant.name
             loadAndSetImage(plant)
         }

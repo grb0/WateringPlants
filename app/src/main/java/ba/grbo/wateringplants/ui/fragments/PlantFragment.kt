@@ -88,7 +88,6 @@ class PlantFragment : Fragment() {
     private lateinit var popupMenu: PopupMenu
     //endregion
 
-    //region Overriden methods
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -180,12 +179,15 @@ class PlantFragment : Fragment() {
         imm = activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
     }
 
+
     override fun onCreateAnimation(transit: Int, enter: Boolean, nextAnim: Int): Animation? {
         return onCreateAnimation(
             transit,
             enter,
             nextAnim,
+            resources.getInteger(android.R.integer.config_mediumAnimTime).toLong(),
             requireContext(),
+            lifecycleScope,
             plantViewModel::onEnterAnimationStart,
             plantViewModel::onEnterAnimationEnd
         ) { t, e, a -> super.onCreateAnimation(t, e, a) }
@@ -199,8 +201,12 @@ class PlantFragment : Fragment() {
 
     //region Flow collectors
     private fun PlantViewModel.collectFlows() {
+        collect(setSharedElementEnterTransitionEvent) { setsharedElementEnterTransition() }
+        collect(setTransitionNameEvent) { setTransitionName(it) }
         collect(removeBottomNavigation) { setBottomNavigationVisibility(it) }
-        collect(triggerAddingContextualActionBar) { triggerAddingContextualActionBar() }
+        collect(triggerAddingContextualActionBar) {
+            triggerAddingContextualActionBar()
+        }
         collect(triggerViewingContextualActionbar) { triggerViewingContextualActionBar(it) }
         collect(adjustToEditingContextualActionBar) {
             if (plantState.value.first == PlantState.EDITING) adjustToEditingContextualActionBar()
@@ -209,6 +215,7 @@ class PlantFragment : Fragment() {
             if (plantState.value.first == PlantState.VIEWING) adjustToViewingContextualActionbar(it)
         }
         collect(collectPlantFlowsEvent) { collectPlantFlows() }
+
         collect(showImageLoadingProgressEvent) {
             setImageLoadingProgressVisibility(it.toVisibility)
         }
@@ -247,6 +254,15 @@ class PlantFragment : Fragment() {
     //endregion
 
     //region Helper methods
+    private fun setsharedElementEnterTransition() {
+        sharedElementEnterTransition = buildMaterialContainerTransform(resources)
+//        sharedElementReturnTransition = buildMaterialContainerTransform(resources)
+    }
+
+    private fun setTransitionName(transitionName: String) {
+        binding.plantFragmentConstraintLayout.transitionName = transitionName
+    }
+
     private fun showSnackbar(@StringRes text: Int) {
         showSnackbar(activity.getSnackbarCoordinatorLayout(), text)
     }

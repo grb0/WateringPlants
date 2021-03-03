@@ -12,11 +12,7 @@
         tools:layout="@layout/fragment_plants" >
         <action
             android:id="@+id/action_plantsFragment_to_plantFragment"
-            app:destination="@id/plantFragment"
-            app:enterAnim="@anim/slide_in_bottom"
-            app:exitAnim="@anim/slide_out_top"
-            app:popEnterAnim="@anim/slide_in_top"
-            app:popExitAnim="@anim/slide_out_bottom" />
+            app:destination="@id/plantFragment" />
     </fragment>
     <fragment
         android:id="@+id/encyclopediaFragment"

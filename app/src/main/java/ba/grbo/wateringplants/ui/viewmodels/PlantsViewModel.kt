@@ -25,6 +25,8 @@ class PlantsViewModel @Inject constructor(
     val plants: SharedFlow<List<Plant>>
         get() = _plants
 
+    var lastState: PlantState? = null
+
     init {
         _plantsDB
             .onEach {
@@ -65,7 +67,10 @@ class PlantsViewModel @Inject constructor(
     //region Helper methods
     fun processActionBarItemId(@IdRes itemId: Int): Boolean {
         when (itemId) {
-            R.id.add -> _addPlantEvent.tryEmit(PlantState.ADDING)
+            R.id.add -> {
+                _addPlantEvent.tryEmit(PlantState.ADDING)
+                lastState = PlantState.ADDING
+            }
             R.id.delete_all -> _removeGlideCacheEvent.tryEmit(Unit)
         }
         return true
@@ -81,6 +86,7 @@ class PlantsViewModel @Inject constructor(
 
     fun onPlantCardClicked(plantId: Int) {
         _viewPlantEvent.tryEmit(PlantState.VIEWING to plantId)
+        lastState = PlantState.VIEWING
     }
     //endregion
 }

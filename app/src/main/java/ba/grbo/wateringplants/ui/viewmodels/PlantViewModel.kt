@@ -52,6 +52,13 @@ class PlantViewModel @Inject constructor(
     private val _collectPlantFlowsEvent = SharedStateLikeFlow<Unit>()
     val collectPlantFlowsEvent = _collectPlantFlowsEvent.distinctUntilChanged()
 
+    private val _setSharedElementEnterTransitionEvent = SharedStateLikeFlow<Unit>()
+    val setSharedElementEnterTransitionEvent =
+        _setSharedElementEnterTransitionEvent.distinctUntilChanged()
+
+    private val _setTransitionNameEvent = SharedStateLikeFlow<String>()
+    val setTransitionNameEvent = _setTransitionNameEvent.distinctUntilChanged()
+
     init {
         if (_plantState.value == PlantState.ADDING to null) {
             plant = Plant()
@@ -61,6 +68,8 @@ class PlantViewModel @Inject constructor(
             if (retrievedPlant is Success) {
                 plant = retrievedPlant.data
                 unmodifiedPlant = plant.clone()
+                _setSharedElementEnterTransitionEvent.tryEmit(Unit)
+                _setTransitionNameEvent.tryEmit(plantId.toString())
                 _collectPlantFlowsEvent.emit(Unit)
                 _showPickImageTakePhoto.emit(false)
             }

@@ -2,7 +2,9 @@ package ba.grbo.wateringplants.util
 
 import android.content.ContentUris
 import android.content.Context
+import android.content.res.Resources
 import android.database.Cursor
+import android.graphics.Color
 import android.graphics.Point
 import android.graphics.Rect
 import android.net.Uri
@@ -20,6 +22,7 @@ import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.view.ActionMode
 import androidx.fragment.app.Fragment
+import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
@@ -27,9 +30,13 @@ import androidx.recyclerview.widget.RecyclerView.ItemDecoration
 import ba.grbo.wateringplants.R
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.transition.MaterialContainerTransform
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 fun getAnimation(
@@ -64,13 +71,26 @@ fun onCreateAnimation(
     transit: Int,
     enter: Boolean,
     nextAnim: Int,
+    animTime: Long,
     context: Context,
+    scope: CoroutineScope,
     onEnterAnimationStart: () -> Unit,
     onEnterAnimationEnd: () -> Unit,
     superOnCreateAnimation: (Int, Boolean, Int) -> Animation?
 ): Animation? {
-    return if (nextAnim == 0 || !enter) superOnCreateAnimation(transit, enter, nextAnim)
-    else getAnimation(context, nextAnim, onEnterAnimationStart, onEnterAnimationEnd)
+    return if (enter && nextAnim != 0) getAnimation(
+        context,
+        nextAnim,
+        onEnterAnimationStart,
+        onEnterAnimationEnd
+    ) else if (enter) {
+        onEnterAnimationStart()
+        scope.launch {
+            delay(animTime)
+            onEnterAnimationEnd()
+        }
+        null
+    } else superOnCreateAnimation(transit, enter, nextAnim)
 }
 
 fun onReleaseFocus(
@@ -117,7 +137,7 @@ fun TextInputEditText.setCustomOnFocusChangeListener(
         if (hasFocus) {
             showKeyboard(this)
             setOnTouchListener {
-                onReleaseFocus(this, it,) {
+                onReleaseFocus(this, it) {
                     clearFocus()
                     if (id == R.id.watering_period_edit_text) onEditTextReleaseFocus()
                 }
@@ -331,4 +351,13 @@ fun getActionModeCallback(
     override fun onDestroyActionMode(mode: ActionMode?) {
         onDestroyActionMode()
     }
+}
+
+fun buildMaterialContainerTransform(resources: Resources) = MaterialContainerTransform().apply {
+    drawingViewId = R.id.nav_host_fragment
+    interpolator = FastOutSlowInInterpolator()
+    containerColor = Color.WHITE
+    scrimColor = Color.TRANSPARENT
+    fadeMode = MaterialContainerTransform.FADE_MODE_OUT
+    duration = resources.getInteger(android.R.integer.config_mediumAnimTime).toLong()
 }

@@ -2,6 +2,10 @@ package ba.grbo.wateringplants.ui.activities
 
 import android.os.Bundle
 import android.view.MotionEvent
+import android.view.View
+import android.view.animation.AlphaAnimation
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
 import androidx.activity.viewModels
 import androidx.annotation.IdRes
 import androidx.annotation.StringRes
@@ -78,7 +82,31 @@ class WateringPlantsActivity : AppCompatActivity() {
     }
 
     fun setBottomNavigationVisibility(visibility: Int) {
-        binding.bottomNavigation.visibility = visibility
+        if (visibility == View.GONE) {
+            binding.bottomNavigation.startAnimation(AnimationUtils.loadAnimation(
+                this,
+                android.R.anim.fade_out
+            ).apply {
+                binding.bottomNavigation.visibility = View.GONE
+            })
+        } else {
+            binding.bottomNavigation.startAnimation(AnimationUtils.loadAnimation(
+                this,
+                android.R.anim.fade_in
+            ).apply {
+                setAnimationListener(object : Animation.AnimationListener {
+                    override fun onAnimationStart(animation: Animation?) {
+                    }
+
+                    override fun onAnimationEnd(animation: Animation?) {
+                        binding.bottomNavigation.visibility = View.VISIBLE
+                    }
+
+                    override fun onAnimationRepeat(animation: Animation?) {
+                    }
+                })
+            })
+        }
     }
 
     fun getSnackbarCoordinatorLayout() = binding.snackbarCoordinatorLayout
