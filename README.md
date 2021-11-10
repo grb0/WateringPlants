@@ -1,12 +1,13 @@
 # WateringPlants
 
-Unfinished app for tracking watering times of plants.
+An unfinished app for tracking watering times of plants done using the MVVM architectural pattern.
 
-![Plants](https://i.postimg.cc/d3WVqv7g/07.png)
-![Add plant empty](https://i.postimg.cc/sX9QSt8g/01.png)
-![Add plant permission](https://i.postimg.cc/QNcGgj0b/02.png)
-![Add plant full](https://i.postimg.cc/CLj8VnJq/03.png)
-![Add plant modify image](https://i.postimg.cc/cHgKkvr6/04.png)
-![View plant](https://i.postimg.cc/3xtCPDJZ/05.png)
-![Edit plant](https://i.postimg.cc/HxXMsJHR/06.png)
-![Plants landscape](https://i.postimg.cc/tJg9vfrk/08.png)
+Some screenshots:
+
+![1](./screenshots/1.png)
+![2](./screenshots/2.png)
+![3](./screenshots/3.png)
+![4](./screenshots/4.png)
+![5](./screenshots/5.png)
+![6](./screenshots/6.png)
+![7](./screenshots/7.png)
