@@ -11,3 +11,5 @@ Some screenshots:
 ![5](./screenshots/5.png)
 ![6](./screenshots/6.png)
 ![7](./screenshots/7.png)
+![8](./screenshots/8.png)
+![9](./screenshots/9.png)
