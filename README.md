@@ -1,4 +1,4 @@
-# WateringPlants
+# A watering plants app
 
 An unfinished app for tracking watering times of plants done using the MVVM architectural pattern.
 
